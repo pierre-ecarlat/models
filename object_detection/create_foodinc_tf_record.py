@@ -164,7 +164,7 @@ def create_tf_record(output_filename,
   for idx, example in enumerate(examples):
     if idx % 100 == 0:
       logging.info('On image %d of %d', idx, len(examples))
-    path = os.path.join(annotations_dir, 'xmls', example + '.xml')
+    path = os.path.join(annotations_dir, example + '.xml')
 
     if not os.path.exists(path):
       logging.warning('Could not find %s, ignoring example.', path)
@@ -187,10 +187,9 @@ def main(_):
 
   logging.info('Reading from Foodinc dataset.')
   image_dir = os.path.join(data_dir, 'Images')
-  annotations_dir = os.path.join(data_dir, 'Annotations')
+  annotations_dir = os.path.join(data_dir, 'Annotations_XML')
   image_sets_dir = os.path.join(data_dir, 'ImageSets')
   trainval_list_path = os.path.join(image_sets_dir, 'trainval.txt')
-  print (trainval_list_path)
   trainval_list = dataset_util.read_examples_list(trainval_list_path)
 
   # Test images are not included in the downloaded data set, so we shall perform
