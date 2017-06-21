@@ -190,10 +190,7 @@ def main(_):
   annotations_dir = os.path.join(data_dir, 'Annotations')
   image_sets_dir = os.path.join(data_dir, 'ImageSets')
   trainval_list_path = os.path.join(image_sets_dir, 'trainval.txt')
-<<<<<<< HEAD
   print (trainval_list_path)
-=======
->>>>>>> e3cecd701264c214d07a4a176aed8e34f9a70ad0
   trainval_list = dataset_util.read_examples_list(trainval_list_path)
 
   # Test images are not included in the downloaded data set, so we shall perform
