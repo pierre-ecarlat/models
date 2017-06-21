@@ -89,4 +89,4 @@ ENV/
 .ropeproject
 
 # Local protos
-object_detections/protos/*_pb2.py
+object_detection/protos/*_pb2.py
