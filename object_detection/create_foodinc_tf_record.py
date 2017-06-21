@@ -132,7 +132,7 @@ def dict_to_tf_example(data,
     #class_name = get_class_name_from_filename(data['filename'])
     class_name = obj['name']
     classes_text.append(class_name.encode('utf8'))
-    classes.append([class_name])
+    classes.append(label_map_dict[class_name])
     #truncated.append(int(obj['truncated']))
     truncated.append(int(False))
     #poses.append(obj['pose'].encode('utf8'))
@@ -178,6 +178,7 @@ def create_tf_record(output_filename,
   writer = tf.python_io.TFRecordWriter(output_filename)
   for idx, example in enumerate(examples):
     if idx % 100 == 0:
+      print "On image", idx, "of", len(examples)
       logging.info('On image %d of %d', idx, len(examples))
     path = os.path.join(annotations_dir, example + '.xml')
 
