@@ -31,6 +31,7 @@ import logging
 import os
 import random
 import re
+import base64
 
 from lxml import etree
 import PIL.Image
@@ -86,8 +87,17 @@ def dict_to_tf_example(data,
     ValueError: if the image pointed to by data['filename'] is not a valid JPEG
   """
   img_path = os.path.join(image_subdirectory, data['filename'])
-  with tf.gfile.GFile(img_path, 'rb') as fid:
-    encoded_jpg = fid.read()
+  base, ext = os.path.splitext(img_path)
+  if ext == ".png":
+    im = PIL.Image.open(BytesIO(base64.b64decode(data)))
+    im.save(base + ".JPEG")
+    with tf.gfile.GFile(base + ".JPEG", 'rb') as fid:
+      encoded_jpg = fid.read()
+    os.remove(base + ".JPEG")
+  else:
+    with tf.gfile.GFile(img_path, 'rb') as fid:
+      encoded_jpg = fid.read()
+
   encoded_jpg_io = io.BytesIO(encoded_jpg)
   image = PIL.Image.open(encoded_jpg_io)
   if image.format != 'JPEG':
