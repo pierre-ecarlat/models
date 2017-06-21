@@ -89,11 +89,12 @@ def dict_to_tf_example(data,
   img_path = os.path.join(image_subdirectory, data['filename'])
   base, ext = os.path.splitext(img_path)
   if ext == ".png":
-    im = PIL.Image.open(BytesIO(base64.b64decode(data)))
-    im.save(base + ".JPEG")
-    with tf.gfile.GFile(base + ".JPEG", 'rb') as fid:
+    im = PIL.Image.open(img_path)
+    rgb_im = im.convert('RGB')
+    rgb_im.save(base + ".jpg")
+    with tf.gfile.GFile(base + ".jpg", 'rb') as fid:
       encoded_jpg = fid.read()
-    os.remove(base + ".JPEG")
+    os.remove(base + ".jpg")
   else:
     with tf.gfile.GFile(img_path, 'rb') as fid:
       encoded_jpg = fid.read()
@@ -117,21 +118,25 @@ def dict_to_tf_example(data,
   poses = []
   difficult_obj = []
   for obj in data['object']:
-    difficult = bool(int(obj['difficult']))
-    if ignore_difficult_instances and difficult:
-      continue
+    #difficult = bool(int(obj['difficult']))
+    #if ignore_difficult_instances and difficult:
+    #  continue
 
-    difficult_obj.append(int(difficult))
+    #difficult_obj.append(int(difficult))
+    difficult_obj.append(int(False))
 
     xmin.append(float(obj['bndbox']['xmin']) / width)
     ymin.append(float(obj['bndbox']['ymin']) / height)
     xmax.append(float(obj['bndbox']['xmax']) / width)
     ymax.append(float(obj['bndbox']['ymax']) / height)
-    class_name = get_class_name_from_filename(data['filename'])
+    #class_name = get_class_name_from_filename(data['filename'])
+    class_name = obj['name']
     classes_text.append(class_name.encode('utf8'))
-    classes.append(label_map_dict[class_name])
-    truncated.append(int(obj['truncated']))
-    poses.append(obj['pose'].encode('utf8'))
+    classes.append([class_name])
+    #truncated.append(int(obj['truncated']))
+    truncated.append(int(False))
+    #poses.append(obj['pose'].encode('utf8'))
+    poses.append('Frontal'.encode('utf8'))
 
   example = tf.train.Example(features=tf.train.Features(feature={
       'image/height': dataset_util.int64_feature(height),

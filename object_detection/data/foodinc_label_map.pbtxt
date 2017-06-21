@@ -5,335 +5,335 @@ item {
 
 item {
   id: 1
-  name: 'white_rice'
+  name: 'White rice'
 }
 
 item {
   id: 2
-  name: 'brown_rice'
+  name: 'Brown rice'
 }
 
 item {
   id: 3
-  name: 'other_rice'
+  name: 'Other rice'
 }
 
 item {
   id: 4
-  name: 'bread'
+  name: 'Bread'
 }
 
 item {
   id: 5
-  name: 'cooked_bread'
+  name: 'Cooked bread'
 }
 
 item {
   id: 6
-  name: 'sweet_bread'
+  name: 'Sweet bread'
 }
 
 item {
   id: 7
-  name: 'sandwich'
+  name: 'Sandwich'
 }
 
 item {
   id: 8
-  name: 'other_bread'
+  name: 'Other bread'
 }
 
 item {
   id: 9
-  name: 'ramen'
+  name: 'Ramen'
 }
 
 item {
   id: 10
-  name: 'udon'
+  name: 'Udon'
 }
 
 item {
   id: 11
-  name: 'soba'
+  name: 'Soba'
 }
 
 item {
   id: 12
-  name: 'other_noodles'
+  name: 'Other noodles'
 }
 
 item {
   id: 13
-  name: 'white_fish'
+  name: 'White fish'
 }
 
 item {
   id: 14
-  name: 'blue_fish'
+  name: 'Blue fish'
 }
 
 item {
   id: 15
-  name: 'shellfish'
+  name: 'Shellfish'
 }
 
 item {
   id: 16
-  name: 'crutacean'
+  name: 'Crutacean'
 }
 
 item {
   id: 17
-  name: 'other_fish'
+  name: 'Other fish'
 }
 
 item {
   id: 18
-  name: 'steak'
+  name: 'Steak'
 }
 
 item {
   id: 19
-  name: 'beef'
+  name: 'Beef'
 }
 
 item {
   id: 20
-  name: 'pork'
+  name: 'Pork'
 }
 
 item {
   id: 21
-  name: 'chicken'
+  name: 'Chicken'
 }
 
 item {
   id: 22
-  name: 'ham_and_baccon'
+  name: 'Ham - baccon'
 }
 
 item {
   id: 23
-  name: 'other_meat'
+  name: 'Other meat'
 }
 
 item {
   id: 24
-  name: 'tofu'
+  name: 'Tofu'
 }
 
 item {
   id: 25
-  name: 'soymilk'
+  name: 'Soymilk'
 }
 
 item {
   id: 26
-  name: 'natto'
+  name: 'Natto'
 }
 
 item {
   id: 27
-  name: 'beans'
+  name: 'Beans'
 }
 
 item {
   id: 28
-  name: 'other_soyfoods'
+  name: 'Other soyfoods'
 }
 
 item {
   id: 29
-  name: 'eggs'
+  name: 'Eggs'
 }
 
 item {
   id: 30
-  name: 'egg_dish'
+  name: 'Egg dish'
 }
 
 item {
   id: 31
-  name: 'fruits'
+  name: 'Fruits'
 }
 
 item {
   id: 32
-  name: 'tomato'
+  name: 'Tomato'
 }
 
 item {
   id: 33
-  name: 'broccoli'
+  name: 'Broccoli'
 }
 
 item {
   id: 34
-  name: 'root_crops'
+  name: 'Root crops'
 }
 
 item {
   id: 35
-  name: 'green_and_yellow_vegetables'
+  name: 'Green and yellow vegetables'
 }
 
 item {
   id: 36
-  name: 'mushrooms'
+  name: 'Mushrooms'
 }
 
 item {
   id: 37
-  name: 'other_vegetables'
+  name: 'Other vegetables'
 }
 
 item {
   id: 38
-  name: 'milk'
+  name: 'Milk'
 }
 
 item {
   id: 39
-  name: 'yogurt'
+  name: 'Yogurt'
 }
 
 item {
   id: 40
-  name: 'cheese'
+  name: 'Cheese'
 }
 
 item {
   id: 41
-  name: 'other_dairy_products'
+  name: 'Other dairy products'
 }
 
 item {
   id: 42
-  name: 'nuts_and_seeds'
+  name: 'Nuts & seeds'
 }
 
 item {
   id: 43
-  name: 'water'
+  name: 'Water'
 }
 
 item {
   id: 44
-  name: 'juice'
+  name: 'Juice'
 }
 
 item {
   id: 45
-  name: 'vegetable_juice'
+  name: 'Vegetable juice'
 }
 
 item {
   id: 46
-  name: 'coffe_and_tea'
+  name: 'Coffe - tea'
 }
 
 item {
   id: 47
-  name: 'alcohol'
+  name: 'Alcohol'
 }
 
 item {
   id: 48
-  name: 'other_drinks'
+  name: 'Other drinks'
 }
 
 item {
   id: 49
-  name: 'stirfried_food'
+  name: 'Stir-fried food'
 }
 
 item {
   id: 50
-  name: 'fried_food'
+  name: 'Fried food'
 }
 
 item {
   id: 51
-  name: 'steamed_food'
+  name: 'Steamed food'
 }
 
 item {
   id: 52
-  name: 'grilled_food'
+  name: 'Grilled food'
 }
 
 item {
   id: 53
-  name: 'simmered_food'
+  name: 'Simmered food'
 }
 
 item {
   id: 54
-  name: 'green_salad'
+  name: 'Green salad'
 }
 
 item {
   id: 55
-  name: 'seaweed_salad'
+  name: 'Seaweed salad'
 }
 
 item {
   id: 56
-  name: 'potato_and_pumpkins_salad'
+  name: 'Potato - pumpkins salad'
 }
 
 item {
   id: 57
-  name: 'proteinized_salad'
+  name: 'Proteinized salad'
 }
 
 item {
   id: 58
-  name: 'vinegared_salad'
+  name: 'Vinegared salad'
 }
 
 item {
   id: 59
-  name: 'soup_stock'
+  name: 'Soup stock'
 }
 
 item {
   id: 60
-  name: 'pastry'
+  name: 'Pastry'
 }
 
 item {
   id: 61
-  name: 'japanese_pastry'
+  name: 'Japanese pastry'
 }
 
 item {
   id: 62
-  name: 'curry'
+  name: 'Curry'
 }
 
 item {
   id: 63
-  name: 'rice_ball_and_seaweed_roll'
+  name: 'Rice ball - seaweed roll'
 }
 
 item {
   id: 64
-  name: 'porridge'
+  name: 'Porridge'
 }
 
 item {
   id: 65
-  name: 'other_rice_dishes'
+  name: 'Other rice dishes'
 }
 
 item {
   id: 66
-  name: 'pot'
+  name: 'Pot'
 }
 
 item {
   id: 67
-  name: 'bento'
+  name: 'Bento'
 }
