@@ -1,0 +1,339 @@
+item {
+  id: 0
+  name: 'none_of_the_above'
+}
+
+item {
+  id: 1
+  name: 'white_rice'
+}
+
+item {
+  id: 2
+  name: 'brown_rice'
+}
+
+item {
+  id: 3
+  name: 'other_rice'
+}
+
+item {
+  id: 4
+  name: 'bread'
+}
+
+item {
+  id: 5
+  name: 'cooked_bread'
+}
+
+item {
+  id: 6
+  name: 'sweet_bread'
+}
+
+item {
+  id: 7
+  name: 'sandwich'
+}
+
+item {
+  id: 8
+  name: 'other_bread'
+}
+
+item {
+  id: 9
+  name: 'ramen'
+}
+
+item {
+  id: 10
+  name: 'udon'
+}
+
+item {
+  id: 11
+  name: 'soba'
+}
+
+item {
+  id: 12
+  name: 'other_noodles'
+}
+
+item {
+  id: 13
+  name: 'white_fish'
+}
+
+item {
+  id: 14
+  name: 'blue_fish'
+}
+
+item {
+  id: 15
+  name: 'shellfish'
+}
+
+item {
+  id: 16
+  name: 'crutacean'
+}
+
+item {
+  id: 17
+  name: 'other_fish'
+}
+
+item {
+  id: 18
+  name: 'steak'
+}
+
+item {
+  id: 19
+  name: 'beef'
+}
+
+item {
+  id: 20
+  name: 'pork'
+}
+
+item {
+  id: 21
+  name: 'chicken'
+}
+
+item {
+  id: 22
+  name: 'ham_and_baccon'
+}
+
+item {
+  id: 23
+  name: 'other_meat'
+}
+
+item {
+  id: 24
+  name: 'tofu'
+}
+
+item {
+  id: 25
+  name: 'soymilk'
+}
+
+item {
+  id: 26
+  name: 'natto'
+}
+
+item {
+  id: 27
+  name: 'beans'
+}
+
+item {
+  id: 28
+  name: 'other_soyfoods'
+}
+
+item {
+  id: 29
+  name: 'eggs'
+}
+
+item {
+  id: 30
+  name: 'egg_dish'
+}
+
+item {
+  id: 31
+  name: 'fruits'
+}
+
+item {
+  id: 32
+  name: 'tomato'
+}
+
+item {
+  id: 33
+  name: 'broccoli'
+}
+
+item {
+  id: 34
+  name: 'root_crops'
+}
+
+item {
+  id: 35
+  name: 'green_and_yellow_vegetables'
+}
+
+item {
+  id: 36
+  name: 'mushrooms'
+}
+
+item {
+  id: 37
+  name: 'other_vegetables'
+}
+
+item {
+  id: 38
+  name: 'milk'
+}
+
+item {
+  id: 39
+  name: 'yogurt'
+}
+
+item {
+  id: 40
+  name: 'cheese'
+}
+
+item {
+  id: 41
+  name: 'other_dairy_products'
+}
+
+item {
+  id: 42
+  name: 'nuts_and_seeds'
+}
+
+item {
+  id: 43
+  name: 'water'
+}
+
+item {
+  id: 44
+  name: 'juice'
+}
+
+item {
+  id: 45
+  name: 'vegetable_juice'
+}
+
+item {
+  id: 46
+  name: 'coffe_and_tea'
+}
+
+item {
+  id: 47
+  name: 'alcohol'
+}
+
+item {
+  id: 48
+  name: 'other_drinks'
+}
+
+item {
+  id: 49
+  name: 'stirfried_food'
+}
+
+item {
+  id: 50
+  name: 'fried_food'
+}
+
+item {
+  id: 51
+  name: 'steamed_food'
+}
+
+item {
+  id: 52
+  name: 'grilled_food'
+}
+
+item {
+  id: 53
+  name: 'simmered_food'
+}
+
+item {
+  id: 54
+  name: 'green_salad'
+}
+
+item {
+  id: 55
+  name: 'seaweed_salad'
+}
+
+item {
+  id: 56
+  name: 'potato_and_pumpkins_salad'
+}
+
+item {
+  id: 57
+  name: 'proteinized_salad'
+}
+
+item {
+  id: 58
+  name: 'vinegared_salad'
+}
+
+item {
+  id: 59
+  name: 'soup_stock'
+}
+
+item {
+  id: 60
+  name: 'pastry'
+}
+
+item {
+  id: 61
+  name: 'japanese_pastry'
+}
+
+item {
+  id: 62
+  name: 'curry'
+}
+
+item {
+  id: 63
+  name: 'rice_ball_and_seaweed_roll'
+}
+
+item {
+  id: 64
+  name: 'porridge'
+}
+
+item {
+  id: 65
+  name: 'other_rice_dishes'
+}
+
+item {
+  id: 66
+  name: 'pot'
+}
+
+item {
+  id: 67
+  name: 'bento'
+}
