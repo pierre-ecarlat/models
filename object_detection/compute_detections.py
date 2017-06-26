@@ -97,7 +97,7 @@ PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
 # Data
 PATH_TO_TEST_IMAGES_DIR = '/mnt2/datasets/Foodinc/Images'
-PATH_TO_TEST_ANNOTATIONS_DIR = '/mnt2/datasets/Annotations'
+PATH_TO_TEST_ANNOTATIONS_DIR = '/mnt2/datasets/Foodinc/Annotations'
 LIST_TEST_IMAGES = '/mnt2/datasets/Foodinc/ImageSets/test.txt'
 NB_IMAGES = -1
 IMG_EXT = 'png'
