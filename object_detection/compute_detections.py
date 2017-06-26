@@ -91,7 +91,7 @@ MAX_PER_IMAGE = 100
 
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_CKPT = '/mnt2/results//mnt2/results/TMP_new_frcnn_res101_foodinc/graph.pb'
+PATH_TO_CKPT = '/mnt2/results/TMP_new_frcnn_res101_foodinc/graph.pb'
 # List of the strings that is used to add correct label for each box.
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
