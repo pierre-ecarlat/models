@@ -90,18 +90,26 @@ NMS_OVERLAPS = 0.3
 MAX_PER_IMAGE = 100
 
 
-# Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_CKPT = '/mnt2/results/TMP_new_frcnn_res101_foodinc/graph.pb'
-# List of the strings that is used to add correct label for each box.
+import getpass
+user = getpass.getuser()
+if user == "pierre":
+  PATH_TO_CKPT = '/home/pierre/projects/deep_learning/setup_tf/models/object_detection/graph.pb'
+  PATH_TO_DATASET = '/home/pierre/projects/datasets/Foodinc/'
+elif user == "finc":
+  PATH_TO_CKPT = '/mnt2/results/TMP_new_frcnn_res101_foodinc/graph.pb'
+  PATH_TO_DATASET = '/mnt2/datasets/Foodinc/'
+else:
+  assert False, "unowkn user"
+
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
-# Data
-PATH_TO_TEST_IMAGES_DIR = '/mnt2/datasets/Foodinc/Images'
-PATH_TO_TEST_ANNOTATIONS_DIR = '/mnt2/datasets/Foodinc/Annotations'
-LIST_TEST_IMAGES = '/mnt2/datasets/Foodinc/ImageSets/test.txt'
 NB_IMAGES = -1
 IMG_EXT = 'png'
 ANN_EXT = 'txt'
+PATH_TO_TEST_IMAGES_DIR = PATH_TO_DATASET + 'Images'
+PATH_TO_TEST_ANNOTATIONS_DIR = PATH_TO_DATASET + 'Annotations'
+LIST_TEST_IMAGES = PATH_TO_DATASET + 'ImageSets/test.txt'
+
 
 # Requirements
 assert os.path.isfile(PATH_TO_CKPT)
