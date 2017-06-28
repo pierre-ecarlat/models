@@ -203,7 +203,6 @@ with detection_graph.as_default():
           cls_boxes = boxes[inds]
           cls_scores = scores[inds]
           try:
-            #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
             cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
               .astype(np.float32, copy=False)
             successful = True
@@ -213,8 +212,8 @@ with detection_graph.as_default():
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
-        image_scores = np.hstack([all_boxes[j][image_idx][:, -1]
-                      for j in range(1, NUM_CLASSES)])
+        all_scores = [all_boxes[j][image_idx][:, -1] for j in range(1, NUM_CLASSES)]
+        image_scores = np.hstack(all_scores)
         if len(image_scores) > MAX_PER_IMAGE:
           image_thresh = np.sort(image_scores)[-MAX_PER_IMAGE]
           for j in range(1, NUM_CLASSES):
