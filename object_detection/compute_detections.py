@@ -196,24 +196,21 @@ with detection_graph.as_default():
 
       # For each category (except 0: background)
       for j in range(1, NUM_CLASSES):
-        inds = np.where(classes[:] == j)[0]
+        successful = False
+        while not successful:
+          inds = np.where(classes[:] == j)[0]
 
-        cls_boxes = boxes[inds]
-        cls_scores = scores[inds]
-        try:
-          #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
-          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-            .astype(np.float32, copy=False)
-          break
-        except ValueError:
-          displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, ">>> Met a ValueError, will try again <<<")
-          j = j-1
-          continue
-
-        keep = py_cpu_nms(cls_dets, THRESH)
-        cls_dets = cls_dets[keep, :]
-        all_boxes[j][image_idx] = cls_dets
-
+          cls_boxes = boxes[inds]
+          cls_scores = scores[inds]
+          try:
+            #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
+            cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+              .astype(np.float32, copy=False)
+              successful = True
+            break
+          except ValueError:
+            displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, ">>> Met a ValueError, will try again <<<")
+      
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
         image_scores = np.hstack([all_boxes[j][image_idx][:, -1]
