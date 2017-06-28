@@ -205,6 +205,10 @@ with detection_graph.as_default():
           try:
             cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
               .astype(np.float32, copy=False)
+ 
+            keep = py_cpu_nms(cls_dets, THRESH)
+            cls_dets = cls_dets[keep, :]
+            all_boxes[j][image_idx] = cls_dets
             successful = True
             break
           except ValueError:
