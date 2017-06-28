@@ -200,9 +200,15 @@ with detection_graph.as_default():
 
         cls_boxes = boxes[inds]
         cls_scores = scores[inds]
-        #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
-        cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-          .astype(np.float32, copy=False)
+        try:
+          #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
+          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+            .astype(np.float32, copy=False)
+          break
+        except ValueError:
+          displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, ">>> Met a ValueError, will try again <<<")
+          j = j-1
+          continue
 
         keep = py_cpu_nms(cls_dets, THRESH)
         cls_dets = cls_dets[keep, :]
