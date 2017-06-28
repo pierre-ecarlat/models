@@ -200,7 +200,7 @@ with detection_graph.as_default():
 
         cls_boxes = boxes[inds]
         cls_scores = scores[inds]
-        print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
+        #print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
         cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
           .astype(np.float32, copy=False)
 
