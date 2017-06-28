@@ -31,9 +31,10 @@ def ping (txts):
 def pong ():
   t_spent = int(time.time() - start)
   print "[Timer   ]>>> Done in", t_spent, "secondes."
-def displayProgress (index, nbMax, tempo):
+def displayProgress (index, nbMax, tempo, add_infos=""):
   if index % tempo != 0 and index < nbMax-1: return
-  sys.stdout.write("\r[Process ]>>> " + str(int(index)) + " / " + str(int(nbMax)) + " done.")
+  add_infos = " (" + add_infos + ")" if add_infos != "" else ""
+  sys.stdout.write("\r[Process ]>>> " + str(int(index)) + " / " + str(int(nbMax)) + " done." + add_infos)
   sys.stdout.flush()
   if index >= nbMax-1: print
 
@@ -156,7 +157,7 @@ ping (['Start compute detections'])
 with detection_graph.as_default():
   with tf.Session(graph=detection_graph) as sess:
     for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
-      displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1)
+      displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path)
 
       image = Image.open(image_path)
       width, height = image.size
@@ -199,6 +200,7 @@ with detection_graph.as_default():
 
         cls_boxes = boxes[inds]
         cls_scores = scores[inds]
+        print str(len(cls_boxes)) + " -> " + str(cls_boxes) + "\t\t" + str(len(cls_scores)) + " -> " + str(cls_scores)
         cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
           .astype(np.float32, copy=False)
 
