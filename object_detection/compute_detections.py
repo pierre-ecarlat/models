@@ -108,7 +108,7 @@ IMG_EXT = 'png'
 ANN_EXT = 'txt'
 PATH_TO_TEST_IMAGES_DIR = PATH_TO_DATASET + 'Images'
 PATH_TO_TEST_ANNOTATIONS_DIR = PATH_TO_DATASET + 'Annotations'
-LIST_TEST_IMAGES = PATH_TO_DATASET + 'ImageSets/test.txt'
+LIST_TEST_IMAGES = PATH_TO_DATASET + 'ImageSets/filtered_test.txt'
 
 
 # Requirements
@@ -216,7 +216,6 @@ with detection_graph.as_default():
       boxes = np.asarray(boxes_normalized)
 
       # For each category (except 0: background)
-      failed = False
       for j in range(1, NUM_CLASSES):
         inds = np.where(classes[:] == j)[0]
 
@@ -232,19 +231,11 @@ with detection_graph.as_default():
           successful = True
           break
         except ValueError:
-          failed = True
-          break
-
-      if failed:
-        continue
-      list_images_detected.append(TEST_IMAGE_PATHS[idx])
+          displayProgress (idx, NB_IMAGES, 1, image_path + 
+            " >>> Met a ValueError, will try again <<<")
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
-        for elmt in [idx, NUM_CLASSES, MAX_PER_IMAGE]:
-          print '::::', elmt, type(elmt)
-        print '', len(all_boxes), len(all_boxes[0]), type(all_boxes)
-
         all_scores = [all_boxes[j][idx][:, -1] for j in range(1, NUM_CLASSES)]
         image_scores = np.hstack(all_scores)
         if len(image_scores) > MAX_PER_IMAGE:
@@ -256,8 +247,12 @@ pong()
 
 det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
 
+if os.path.isfile(det_file):
+  with open(det_file, 'rb') as f:
+    dets = pickle.load(f)
+    for box in all_boxes:
+      dets.append(box)
+    all_boxes = dets
+
 with open(det_file, 'wb') as f:
   pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
-
-with open(os.path.join(FLAGS.eval_dir, 'images.txt')) as f:
-  f.write('\n'.join(list_images_detected))
