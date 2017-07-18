@@ -71,19 +71,6 @@ def py_cpu_nms(dets, thresh):
 
   return keep
 
-def load_image_into_numpy_array(image):
-  (im_width, im_height) = image.size
-  return np.array(image.getdata()).reshape(
-      (im_height, im_width, 3)).astype(np.uint8)
-
-
-
-
-
-
-
-
-
 
 
 
@@ -160,7 +147,7 @@ category_index = label_map_util.create_category_index(categories)
 
 # Tensorflow init
 tfConfig = tf.ConfigProto(allow_soft_placement=True)
-tfConfig.gpu_options.allow_growth=True
+#tfConfig.gpu_options.allow_growth=True
 detection_graph = tf.Graph()
 with detection_graph.as_default():
     od_graph_def = tf.GraphDef()
@@ -194,7 +181,7 @@ with detection_graph.as_default():
       width, height = image.size
       # the array based representation of the image will be used later in order to prepare the
       # result image with boxes and labels on it.
-      image_np = load_image_into_numpy_array(image)
+      image_np = np.array(image.getdata()).reshape((height, width, 3)).astype(np.uint8)
       # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
       image_np_expanded = np.expand_dims(image_np, axis=0)
       image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
