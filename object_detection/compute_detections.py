@@ -233,6 +233,7 @@ with detection_graph.as_default():
           break
         except ValueError:
           failed = True
+          break
 
       if failed:
         continue
