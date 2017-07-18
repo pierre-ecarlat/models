@@ -78,6 +78,17 @@ def load_image_into_numpy_array(image):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 # Arguments
 flags = tf.app.flags
 flags.DEFINE_string('eval_dir', '',
@@ -97,7 +108,8 @@ if user == "pierre":
   PATH_TO_CKPT = '/home/pierre/projects/deep_learning/setup_tf/models/object_detection/graph.pb'
   PATH_TO_DATASET = '/home/pierre/projects/datasets/Foodinc/'
 elif user == "finc":
-  PATH_TO_CKPT = '/mnt2/results/TMP_new_frcnn_res101_foodinc/graph.pb'
+  PATH_TO_CKPT = '/mnt2/results/Foodinc/frcnn_res101_e2e_tf_ODAPI/graph.pb'
+  PATH_TO_MODEL = '/mnt2/results/Foodinc/frcnn_res101_e2e_tf_ODAPI/model.ckpt-948216'
   PATH_TO_DATASET = '/mnt2/datasets/Foodinc/'
 else:
   assert False, "unowkn user"
@@ -120,6 +132,7 @@ assert os.path.exists(PATH_TO_TEST_IMAGES_DIR)
 assert os.path.exists(PATH_TO_TEST_ANNOTATIONS_DIR)
 assert os.path.isfile(LIST_TEST_IMAGES)
 assert FLAGS.eval_dir
+assert os.path.exists(FLAGS.eval_dir)
 list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)]
 if NB_IMAGES > 0 and NB_IMAGES < len(list_images_names):
   list_images_names = list_images_names[:NB_IMAGES]
@@ -127,6 +140,12 @@ NB_IMAGES = len(list_images_names)
 for name in list_images_names:
   assert os.path.isfile(os.path.join(PATH_TO_TEST_IMAGES_DIR, '{}.{}'.format(name, IMG_EXT)))
   assert os.path.isfile(os.path.join(PATH_TO_TEST_ANNOTATIONS_DIR, '{}.{}'.format(name, ANN_EXT)))
+
+# Infos
+print "Will test", NB_IMAGES, "images"
+print "Will write the detections into:", FLAGS.eval_dir
+
+
 
 # Images and annotations
 TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 
@@ -140,6 +159,17 @@ categories = label_map_util.convert_label_map_to_categories(label_map, max_num_c
 category_index = label_map_util.create_category_index(categories)
 
 # Tensorflow init
+tfConfig = tf.ConfigProto(allow_soft_placement=True)
+tfConfig.gpu_options.allow_growth=True
+detection_graph = tf.Graph()
+with detection_graph.as_default():
+    od_graph_def = tf.GraphDef()
+    with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        serialized_graph = fid.read()
+        od_graph_def.ParseFromString(serialized_graph)
+        tf.import_graph_def(od_graph_def, name='')
+
+
 detection_graph = tf.Graph()
 with detection_graph.as_default():
     od_graph_def = tf.GraphDef()
@@ -154,8 +184,12 @@ all_boxes = [[[] for _ in range(NB_IMAGES)]
 
 ping (['Start compute detections'])
 
+
 with detection_graph.as_default():
-  with tf.Session(graph=detection_graph) as sess:
+  with tf.Session(graph=detection_graph, config=tfConfig) as sess:
+    saver = tf.train.Saver()
+    saver.restore(sess, PATH_TO_MODEL)
+
     for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
       displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path)
 
@@ -205,14 +239,15 @@ with detection_graph.as_default():
           try:
             cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
               .astype(np.float32, copy=False)
- 
+
             keep = py_cpu_nms(cls_dets, THRESH)
             cls_dets = cls_dets[keep, :]
             all_boxes[j][image_idx] = cls_dets
             successful = True
             break
           except ValueError:
-            displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, ">>> Met a ValueError, will try again <<<")
+            displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path + 
+              " >>> Met a ValueError, will try again <<<")
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
