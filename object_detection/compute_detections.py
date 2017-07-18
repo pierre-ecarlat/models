@@ -105,7 +105,7 @@ else:
 
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
-NB_IMAGES = 2
+NB_IMAGES = 400
 IMG_EXT = 'png'
 ANN_EXT = 'txt'
 PATH_TO_TEST_IMAGES_DIR = PATH_TO_DATASET + 'Images'
