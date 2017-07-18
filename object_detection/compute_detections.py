@@ -80,8 +80,6 @@ def py_cpu_nms(dets, thresh):
 flags = tf.app.flags
 flags.DEFINE_string('eval_dir', '',
                     'Directory where to save the detections.')
-flags.DEFINE_string('images_from', 0,
-                    'Image to start with.')
 FLAGS = flags.FLAGS
 
 
@@ -121,11 +119,8 @@ assert os.path.exists(PATH_TO_TEST_IMAGES_DIR)
 assert os.path.exists(PATH_TO_TEST_ANNOTATIONS_DIR)
 assert os.path.isfile(LIST_TEST_IMAGES)
 assert FLAGS.eval_dir
-assert FLAGS.images_from
 assert os.path.exists(FLAGS.eval_dir)
 list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)]
-if int(FLAGS.images_from) > 0 and int(FLAGS.images_from) < len(list_images_names):
-  list_images_names = list_images_names[int(FLAGS.images_from):]
 if NB_IMAGES > 0 and NB_IMAGES < len(list_images_names):
   list_images_names = list_images_names[:NB_IMAGES]
 NB_IMAGES = len(list_images_names)
@@ -173,6 +168,7 @@ with detection_graph.as_default():
 # Detections
 all_boxes = [[[] for _ in range(NB_IMAGES)]
                  for _ in range(NUM_CLASSES + 1)]
+list_images_detected = []
 
 ping (['Start compute detections'])
 
@@ -220,25 +216,27 @@ with detection_graph.as_default():
       boxes = np.asarray(boxes_normalized)
 
       # For each category (except 0: background)
+      failed = False
       for j in range(1, NUM_CLASSES):
-        successful = False
-        while not successful:
-          inds = np.where(classes[:] == j)[0]
+        inds = np.where(classes[:] == j)[0]
 
-          cls_boxes = boxes[inds]
-          cls_scores = scores[inds]
-          try:
-            cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-              .astype(np.float32, copy=False)
+        cls_boxes = boxes[inds]
+        cls_scores = scores[inds]
+        try:
+          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+            .astype(np.float32, copy=False)
 
-            keep = py_cpu_nms(cls_dets, THRESH)
-            cls_dets = cls_dets[keep, :]
-            all_boxes[j][idx] = cls_dets
-            successful = True
-            break
-          except ValueError:
-            displayProgress (idx, NB_IMAGES, 1, image_path + 
-              " >>> Met a ValueError, will try again <<<")
+          keep = py_cpu_nms(cls_dets, THRESH)
+          cls_dets = cls_dets[keep, :]
+          all_boxes[j][idx] = cls_dets
+          successful = True
+          break
+        except ValueError:
+          failed = True
+
+      if failed:
+        continue
+      list_images_detected.append(TEST_IMAGE_PATHS[idx])
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
@@ -253,12 +251,8 @@ pong()
 
 det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
 
-if os.path.isfile(det_file):
-  with open(det_file, 'rb') as f:
-    dets = pickle.load(f)
-    for box in all_boxes:
-      dets.append(box)
-    all_boxes = dets
-
 with open(det_file, 'wb') as f:
   pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
+
+with open(os.path.join(FLAGS.eval_dir, 'images.txt')) as f;
+  f.write('\n'.join(list_images_detected))
