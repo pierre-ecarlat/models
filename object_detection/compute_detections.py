@@ -252,7 +252,7 @@ pong()
 det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
 
 if os.path.isfile(det_file):
-  with open(os.path.join(output_dir, 'detections.pkl'), 'rb') as f:
+  with open(det_file, 'rb') as f:
     dets = pickle.load(f)
     for box in all_boxes:
       dets.append(box)
