@@ -187,9 +187,6 @@ ping (['Start compute detections'])
 
 with detection_graph.as_default():
   with tf.Session(graph=detection_graph, config=tfConfig) as sess:
-    saver = tf.train.Saver()
-    saver.restore(sess, PATH_TO_MODEL)
-
     for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
       displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path)
 
