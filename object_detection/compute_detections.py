@@ -80,6 +80,8 @@ def py_cpu_nms(dets, thresh):
 flags = tf.app.flags
 flags.DEFINE_string('eval_dir', '',
                     'Directory where to save the detections.')
+flags.DEFINE_string('images_from', 0,
+                    'Image to start with.')
 FLAGS = flags.FLAGS
 
 
@@ -103,7 +105,7 @@ else:
 
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
-NB_IMAGES = -1
+NB_IMAGES = 400
 IMG_EXT = 'png'
 ANN_EXT = 'txt'
 PATH_TO_TEST_IMAGES_DIR = PATH_TO_DATASET + 'Images'
@@ -119,8 +121,11 @@ assert os.path.exists(PATH_TO_TEST_IMAGES_DIR)
 assert os.path.exists(PATH_TO_TEST_ANNOTATIONS_DIR)
 assert os.path.isfile(LIST_TEST_IMAGES)
 assert FLAGS.eval_dir
+assert FLAGS.images_from
 assert os.path.exists(FLAGS.eval_dir)
 list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)]
+if FLAGS.images_from > 0 and FLAGS.images_from < len(list_images_names):
+  list_images_names = list_images_names[FLAGS.images_from:]
 if NB_IMAGES > 0 and NB_IMAGES < len(list_images_names):
   list_images_names = list_images_names[:NB_IMAGES]
 NB_IMAGES = len(list_images_names)
@@ -245,5 +250,13 @@ with detection_graph.as_default():
 pong()
 
 det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
+
+if os.path.isfile(det_file):
+  with open(os.path.join(output_dir, 'detections.pkl'), 'rb') as f:
+    dets = pickle.load(f)
+    for box in all_boxes:
+      dets.append(box)
+    all_boxes = dets
+
 with open(det_file, 'wb') as f:
   pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
