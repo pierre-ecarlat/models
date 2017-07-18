@@ -105,7 +105,7 @@ else:
 
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
 NUM_CLASSES = 67
-NB_IMAGES = 400
+NB_IMAGES = -1
 IMG_EXT = 'png'
 ANN_EXT = 'txt'
 PATH_TO_TEST_IMAGES_DIR = PATH_TO_DATASET + 'Images'
@@ -124,8 +124,8 @@ assert FLAGS.eval_dir
 assert FLAGS.images_from
 assert os.path.exists(FLAGS.eval_dir)
 list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)]
-if FLAGS.images_from > 0 and FLAGS.images_from < len(list_images_names):
-  list_images_names = list_images_names[FLAGS.images_from:]
+#if FLAGS.images_from > 0 and FLAGS.images_from < len(list_images_names):
+#  list_images_names = list_images_names[FLAGS.images_from:]
 if NB_IMAGES > 0 and NB_IMAGES < len(list_images_names):
   list_images_names = list_images_names[:NB_IMAGES]
 NB_IMAGES = len(list_images_names)
