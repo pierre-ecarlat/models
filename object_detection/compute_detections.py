@@ -254,5 +254,5 @@ det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
 with open(det_file, 'wb') as f:
   pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
-with open(os.path.join(FLAGS.eval_dir, 'images.txt')) as f;
+with open(os.path.join(FLAGS.eval_dir, 'images.txt')) as f:
   f.write('\n'.join(list_images_detected))
