@@ -221,18 +221,12 @@ with detection_graph.as_default():
 
         cls_boxes = boxes[inds]
         cls_scores = scores[inds]
-        try:
-          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-            .astype(np.float32, copy=False)
+        cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+          .astype(np.float32, copy=False)
 
-          keep = py_cpu_nms(cls_dets, THRESH)
-          cls_dets = cls_dets[keep, :]
-          all_boxes[j][idx] = cls_dets
-          successful = True
-          break
-        except ValueError:
-          displayProgress (idx, NB_IMAGES, 1, image_path + 
-            " >>> Met a ValueError, will try again <<<")
+        keep = py_cpu_nms(cls_dets, THRESH)
+        cls_dets = cls_dets[keep, :]
+        all_boxes[j][idx] = cls_dets
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
