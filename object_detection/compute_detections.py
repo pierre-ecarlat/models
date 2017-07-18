@@ -241,6 +241,10 @@ with detection_graph.as_default():
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
+        for elmt in [idx, NUM_CLASSES, MAX_PER_IMAGE]:
+          print '::::', elmt, type(elmt)
+        print '', len(all_boxes), len(all_boxes[0]), type(all_boxes)
+
         all_scores = [all_boxes[j][idx][:, -1] for j in range(1, NUM_CLASSES)]
         image_scores = np.hstack(all_scores)
         if len(image_scores) > MAX_PER_IMAGE:
