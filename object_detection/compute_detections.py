@@ -179,8 +179,10 @@ ping (['Start compute detections'])
 
 with detection_graph.as_default():
   with tf.Session(graph=detection_graph, config=tfConfig) as sess:
-    for image_idx, image_path in enumerate(TEST_IMAGE_PATHS):
-      displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path)
+    for idx in range(NB_IMAGES):
+      image_path = TEST_IMAGE_PATHS[idx]
+      annotation_path = TEST_ANNOTATIONS_PATHS[idx]
+      displayProgress (idx, NB_IMAGES, 1, image_path)
 
       image = Image.open(image_path)
       width, height = image.size
@@ -231,22 +233,22 @@ with detection_graph.as_default():
 
             keep = py_cpu_nms(cls_dets, THRESH)
             cls_dets = cls_dets[keep, :]
-            all_boxes[j][image_idx] = cls_dets
+            all_boxes[j][idx] = cls_dets
             successful = True
             break
           except ValueError:
-            displayProgress (image_idx, len(TEST_IMAGE_PATHS), 1, image_path + 
+            displayProgress (idx, NB_IMAGES, 1, image_path + 
               " >>> Met a ValueError, will try again <<<")
       
       # Limit to max_per_image detections *over all classes*
       if MAX_PER_IMAGE > 0:
-        all_scores = [all_boxes[j][image_idx][:, -1] for j in range(1, NUM_CLASSES)]
+        all_scores = [all_boxes[j][idx][:, -1] for j in range(1, NUM_CLASSES)]
         image_scores = np.hstack(all_scores)
         if len(image_scores) > MAX_PER_IMAGE:
           image_thresh = np.sort(image_scores)[-MAX_PER_IMAGE]
           for j in range(1, NUM_CLASSES):
-            keep = np.where(all_boxes[j][image_idx][:, -1] >= image_thresh)[0]
-            all_boxes[j][image_idx] = all_boxes[j][image_idx][keep, :]
+            keep = np.where(all_boxes[j][idx][:, -1] >= image_thresh)[0]
+            all_boxes[j][idx] = all_boxes[j][idx][keep, :]
 pong()
 
 det_file = os.path.join(FLAGS.eval_dir, 'detections.pkl')
