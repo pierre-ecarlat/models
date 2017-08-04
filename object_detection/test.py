@@ -198,7 +198,7 @@ def postProcess(detections):
 
 def first_stage(m, input):
     if DEBUG_MODE: return params_first_stage[m] * input
-    else:          return propose_boxes_only(m, input)
+    else:          return propose_boxes_only(all_[m]['model'], input)
 
 def postprocess_first_stage(ensemble, proposals):
     if DEBUG_MODE: return sum([proposals[m] for m in ensemble]) / float(len(ensemble))
@@ -206,7 +206,7 @@ def postprocess_first_stage(ensemble, proposals):
 
 def second_stage(m, proposals):
     if DEBUG_MODE: return proposals / float(params_second_stage[m])
-    else:          return classify_proposals_only(m, proposals)
+    else:          return classify_proposals_only(all_[m]['model'], proposals)
 
 def postprocess_second_stage(ensemble, detections):
     if DEBUG_MODE: return sum([detections[m] for m in ensemble]) / float(len(ensemble))
