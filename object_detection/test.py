@@ -34,29 +34,26 @@ from object_detection.core import box_list_ops
 # MAIN PARAMETERS
 ####################################################################
 MODELS = {
-  'base_models_dir':  '/home/pierre/projects/deep_learning/foodDetectionAPI/models', 
+  'base_models_dir':  '/mnt2/results', 
   'base_configs_dir': 'samples/configs', 
   'frcnn': {
-      'file':    'Faster_RCNN_ResNet101_Foodinc_950k.pb', 
       'config':  'faster_rcnn_resnet101_foodinc.config', 
-      'ckp_dir': 'frcnn', 
+      'ckp_dir': 'Foodinc/frcnn_res101_e2e_tf_ODAPI', 
   }, 
   'inception': { 
-      'file':    'Faster_RCNN_ResNet101_inception_Foodinc_340k.pb', 
       'config':  'faster_rcnn_inception_resnet_v2_atrous_foodinc.config', 
-      'ckp_dir': 'inception', 
+      'ckp_dir': 'Foodinc/frcnn_inception_tf_ODAPI', 
   }, 
   'ssd': {
-      'file':    'SSD_MobileNet_Foodinc_550k.pb', 
       'config':  'ssd_mobilenet_v1_foodinc.config', 
-      'ckp_dir': 'ssd', 
+      'ckp_dir': 'Foodinc/ssd_mobilenet_tf_ODAPI', 
   }, 
 }
 
 DATASET = {
   'foodinc': {
       'nb_classes': 67, 
-      'base_dir': '/home/pierre/projects/datasets/GodFoodinc', 
+      'base_dir': '/home/finc/GodFoodinc', 
       'images_dir': 'Images', 
       'annotations_dir': 'Annotations', 
       'labels_path': 'infos/foodinc_label_map.pbtxt',
@@ -68,7 +65,7 @@ DATASET = {
 
 
 DEBUG_MODE = False
-ensemble = ['frcnn', ]
+ensemble = ['frcnn',]
 dataset = DATASET['foodinc']
 
 images_dir = osp.join(dataset['base_dir'], dataset['images_dir'])
@@ -91,7 +88,6 @@ paths_check = {
 }
 for model in ensemble:
     paths_check[MODELS['base_configs_dir']].append({ 'name': MODELS[model]['config'],  'type': 'file' } )
-    paths_check[MODELS['base_models_dir']].append( { 'name': MODELS[model]['file'],    'type': 'file' } )
     paths_check[MODELS['base_models_dir']].append( { 'name': MODELS[model]['ckp_dir'], 'type': 'dir' } )
 for k, v in paths_check.iteritems():
     for p in v:
