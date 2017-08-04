@@ -241,7 +241,8 @@ def get_image_for_odapi(images_dir, image_name):
 
 # Helper for the session
 def create_session_for_model(model):
-  sess = tf.Session()
+  config = tf.ConfigProto(allow_soft_placement = True)
+  sess = tf.Session(config = config)
   path_to_ckpt = osp.join(MODELS['base_models_dir'], MODELS[model]['ckp_dir'])
   path_to_latest_ckpt = tf.train.latest_checkpoint(path_to_ckpt)
   path_to_meta = ".".join([path_to_latest_ckpt, "meta"])
