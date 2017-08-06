@@ -7,6 +7,7 @@ import tensorflow as tf
 import zipfile
 import numpy as np
 import functools
+import bisect
 import time
 
 from collections import defaultdict
@@ -34,37 +35,38 @@ from object_detection.core import box_list_ops
 # MAIN PARAMETERS
 ####################################################################
 MODELS = {
-  'base_models_dir':  '/mnt2/results', 
+  'base_models_dir':  '/home/pierre/projects/deep_learning/foodDetectionAPI/models', 
   'base_configs_dir': 'samples/configs', 
   'frcnn': {
       'config':  'faster_rcnn_resnet101_foodinc.config', 
-      'ckp_dir': 'Foodinc/frcnn_res101_e2e_tf_ODAPI', 
+      'ckp_dir': 'frcnn', 
   }, 
   'inception': { 
       'config':  'faster_rcnn_inception_resnet_v2_atrous_foodinc.config', 
-      'ckp_dir': 'Foodinc/frcnn_inception_tf_ODAPI', 
+      'ckp_dir': 'inception', 
   }, 
   'ssd': {
       'config':  'ssd_mobilenet_v1_foodinc.config', 
-      'ckp_dir': 'Foodinc/ssd_mobilenet_tf_ODAPI', 
+      'ckp_dir': 'ssd', 
   }, 
 }
 
 DATASET = {
   'foodinc': {
       'nb_classes': 67, 
-      'base_dir': '/home/finc/GodFoodinc', 
+      'base_dir': '/home/pierre/projects/datasets/MacFoodinc', 
       'images_dir': 'Images', 
       'annotations_dir': 'Annotations', 
       'labels_path': 'infos/foodinc_label_map.pbtxt',
       'list_path': 'ImageSets/all.txt', 
-      'max_images': 1, 
+      'max_images': -1, 
       'image_extension': 'jpg', 
   }
 }
 
 
 DEBUG_MODE = False
+CONFIDENCE_THRESH = 0.5
 ensemble = ['frcnn',]
 dataset = DATASET['foodinc']
 
@@ -131,14 +133,22 @@ if dataset['max_images'] != -1 and dataset['max_images'] < len(list_images_names
 
 # Filtered images that should not be annotated
 filtered_list = []
+errors = { 'annotated': [], 'notafile': [] }
 for img_name in list_images_names:
-    if osp.isfile(osp.join(annotations_dir, img_name + '.txt')):
-        print 'Found an annotation for img', img_name, ', will be skipped.'
-    elif not osp.isfile(osp.join(images_dir, '{}.{}'.format(img_name, dataset['image_extension']))):
-        print 'Unable to find img', img_name, ', will be skipped.'
-    else:
-        filtered_list.append(img_name)
+  if osp.isfile(osp.join(annotations_dir, img_name + '.txt')):
+    errors['annotated'].append(img_name)
+  elif not osp.isfile(osp.join(images_dir, '{}.{}'.format(img_name, dataset['image_extension']))):
+    errors['notafile'].append(img_name)
+  else:
+    filtered_list.append(img_name)
 
+if len(errors['annotated']) > 0:
+  print len(errors['annotated']), "images are already annotated, will be skipped"
+if len(errors['notafile']) > 0:
+  print len(errors['notafile']), "images are in the list, but doesn't exist....."
+if len(filtered_list) == 0:
+  print "No images to annotate."
+  raise SystemExit
 
 ####################################################################
 # Create the tensorflow methods for the scenarii
@@ -159,42 +169,70 @@ def propose_boxes_only(model, image_tensor):
         'num_proposals': num_proposals, 
     }
 
-def merge_proposals(ensemble, proposals):
-    # TODO
-    # Note, format:
-    # {'prediction_dict': 
-    #     {'rpn_box_encodings': <tf.Tensor 'Squeeze:0' shape=(1, ?, 4) dtype=float32>,
-    #      'anchors': <tf.Tensor 'ClipToWindow/Gather/Gather:0' shape=(?, 4) dtype=float32>, 
-    #      'image_shape': <tf.Tensor 'Shape:0' shape=(4,) dtype=int32>, 
-    #      'rpn_features_to_crop': <tf.Tensor 'FirstStageFeatureExtractor/resnet_v1_101/resnet_v1_101/block3/unit_23/bottleneck_v1/Relu:0' shape=(1, ?, ?, 1024) dtype=float32>, 
-    #      'rpn_objectness_predictions_with_background': <tf.Tensor 'FirstStageBoxPredictor/Reshape_1:0' shape=(1, ?, 2) dtype=float32>, 
-    #      'rpn_box_predictor_features': <tf.Tensor 'Conv/Relu6:0' shape=(1, ?, ?, 512) dtype=float32>
-    #     }, 
-    #  'proposal_scores': <tf.Tensor 'stack_3:0' shape=(1, 300) dtype=float32>, 
-    #  'num_proposals': <tf.Tensor 'stack_4:0' shape=(1,) dtype=int32>, 
-    #  'proposal_boxes_normalized': <tf.Tensor 'stack_2:0' shape=(1, 300, 4) dtype=float32>
-    # }
-    result = proposals[ensemble[0]]
-    return result
 
-def classify_proposals_only(model, proposals):
+def merge_proposals(ensemble, proposals):
+    scores = proposals[ensemble[0]]['proposal_scores']
+    boxes = proposals[ensemble[0]]['proposal_boxes_normalized']
+
+    for model in ensemble[1:]:
+      for batch in range(scores.shape[0]):
+        for ix, s in enumerate(proposals[model]['proposal_scores'][batch]):
+          if s > scores[batch][-1]:
+            scores[batch] = scores[batch][::-1]
+            index = len(scores[batch]) - bisect.bisect(scores[batch], s)
+            scores[batch] = scores[batch][::-1]
+            scores[batch].insert(index, s)
+            boxes[batch].insert(index, proposals[model]['proposal_boxes_normalized'][batch][ix])
+            scores[batch] = scores[batch][:-1]
+            boxes[batch] = boxes[batch][:-1]
+          else:
+            break
+
+    tmp_dict = proposals[ensemble[0]]
+    tmp_dict.update({'proposal_scores': scores, 'proposal_boxes_normalized': boxes})
+    return tmp_dict
+
+
+def classify_proposals_only(model, old_pred_dict, rpn_features, image_shape, boxes, num_proposals):
     # Run the second stage only and return the result
-    return model.classify_proposals_only(\
-          proposals['prediction_dict'], 
-          proposals['proposal_boxes_normalized'], 
-          proposals['num_proposals']
-    )
+    detections = model.classify_proposals_only(rpn_features, image_shape, boxes, num_proposals)
+    
+    # Restore lost parameters between stages
+    tmp_dict = old_pred_dict
+    tmp_dict.update(detections)
+    detections = tmp_dict
+    
+    # Post processing
+    postprocessed_detections = model.postprocess(detections)
+
+    # Returns them
+    return postprocessed_detections
+
 
 def merge_detections(ensemble, detections):
-    # TODO
-    result = detections[ensemble[0]]
-    return result
+    scores = detections[ensemble[0]]['detection_scores']
+    boxes = detections[ensemble[0]]['detection_boxes']
+    classes = detections[ensemble[0]]['detection_classes']
 
-def postProcess(detections):
-    # TODO
-    # Should not depend on the model.... ?
-    detections = all_['frcnn']['model'].postprocess(detections)
-    return detections
+    for model in ensemble[1:]:
+      for batch in range(scores.shape[0]):
+        for ix, s in enumerate(detections[model]['detection_scores'][batch]):
+          if s > scores[batch][-1]:
+            scores[batch] = scores[batch][::-1]
+            index = len(scores[batch]) - bisect.bisect(scores[batch], s)
+            scores[batch] = scores[batch][::-1]
+            scores[batch].insert(index, s)
+            boxes[batch].insert(index, detections[model]['detection_boxes'][batch][ix])
+            classes[batch].insert(index, detections[model]['detection_classes'][batch][ix])
+            scores[batch] = scores[batch][:-1]
+            boxes[batch] = boxes[batch][:-1]
+            classes[batch] = classes[batch][:-1]
+          else:
+            break
+
+    tmp_dict = detections[ensemble[0]]
+    tmp_dict.update({'detection_scores': scores, 'detection_boxes': boxes})
+    return tmp_dict
 
 def first_stage(m, input):
     if DEBUG_MODE: return params_first_stage[m] * input
@@ -204,9 +242,9 @@ def postprocess_first_stage(ensemble, proposals):
     if DEBUG_MODE: return sum([proposals[m] for m in ensemble]) / float(len(ensemble))
     else:          return merge_proposals(ensemble, proposals)
 
-def second_stage(m, proposals):
-    if DEBUG_MODE: return proposals / float(params_second_stage[m])
-    else:          return classify_proposals_only(all_[m]['model'], proposals)
+def second_stage(m, old_pred_dict, rpn_features, image_shape, boxes, num_proposals):
+    if DEBUG_MODE: return num_proposals[0] / float(params_second_stage[m])
+    else:          return classify_proposals_only(all_[m]['model'], old_pred_dict, rpn_features, image_shape, boxes, num_proposals)
 
 def postprocess_second_stage(ensemble, detections):
     if DEBUG_MODE: return sum([detections[m] for m in ensemble]) / float(len(ensemble))
@@ -216,24 +254,28 @@ def postprocess_second_stage(ensemble, detections):
 ####################################################################
 # The inputs
 ####################################################################
-
 # Input for the first stage: the image / second stage: the selected proposals
+image_shape = [1, None, None, 3]
 if DEBUG_MODE: image_shape=[]
-else:          image_shape=[1, None, None, 3]
 image_tensor = tf.placeholder(tf.float32, shape=image_shape, name='image_tensor')
-proposals_tensor = tf.placeholder(tf.float32, shape=[], name='proposals_tensor')
+rpn_feat_tensor = tf.placeholder(tf.float32, shape=[1, None, None, 1024], name='rpn_feat')
+prop_boxes_tensor = tf.placeholder(tf.float32, shape=[1, 300, 4], name='prop_boxes')
+num_prop_tensor = tf.placeholder(tf.int32, shape=[1], name='num_prop')
+image_shape_tensor = tf.placeholder(tf.int32, shape=[4], name='img_shape')
+
 
 
 ####################################################################
 # Preparation
 ####################################################################
-nb_imgs = len(filtered_list)
-print 'Will annotate', nb_imgs, 'image{}.'.format('s' if nb_imgs > 1 else '')
+# Getting an image
+def get_image(images_dir, image_name):
+  path = osp.join(images_dir, '{}.{}'.format(image_name, dataset['image_extension']))
+  return Image.open(path)
 
 # Helper for the image
 def get_image_for_odapi(images_dir, image_name):
-  path = osp.join(images_dir, '{}.{}'.format(image_name, dataset['image_extension']))
-  image = Image.open(path)
+  image = get_image(images_dir, image_name)
   (im_width, im_height) = image.size
   image_np = np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
   extended_image = np.expand_dims(image_np, axis=0)
@@ -241,14 +283,14 @@ def get_image_for_odapi(images_dir, image_name):
 
 # Helper for the session
 def create_session_for_model(model):
-  config = tf.ConfigProto(allow_soft_placement = True)
-  sess = tf.Session(config = config)
+  variables_to_restore = tf.global_variables()
+  saver = tf.train.Saver(variables_to_restore)
+  sess = tf.Session('', graph=tf.get_default_graph())
+  sess.run(tf.global_variables_initializer())
   path_to_ckpt = osp.join(MODELS['base_models_dir'], MODELS[model]['ckp_dir'])
   path_to_latest_ckpt = tf.train.latest_checkpoint(path_to_ckpt)
-  path_to_meta = ".".join([path_to_latest_ckpt, "meta"])
-  if not DEBUG_MODE:
-    saver = tf.train.import_meta_graph(path_to_meta)
-    saver.restore(sess, path_to_latest_ckpt)
+  latest_checkpoint = path_to_latest_ckpt
+  saver.restore(sess, latest_checkpoint)
   return sess
 
 
@@ -256,155 +298,118 @@ def create_session_for_model(model):
 # Start to annotate
 ####################################################################
 # How many images will be processed at a time
-batch = 3
+batch = 1
 
-# Go over the list of images
-while len(filtered_list) > 0:
+# Do the batch
+batch_list = filtered_list[:batch]
 
-  # Get the list of images for this batch
-  batch_list = filtered_list[:batch]
+# Will store the proposals / detections for each image in these dicts
+results_proposals_dict = {}
+results_detections_dict = {}
+for img in batch_list:
+  results_proposals_dict[img] = {}
+  results_detections_dict[img] = {}
 
-  # Will store the proposals / detections for each image in these dicts
-  results_proposals_dict = {}
-  results_detections_dict = {}
+# First stage, for each model, one by one
+for m in ensemble:
+
+  # First stage scenario
+  tmp_proposals = first_stage(m, image_tensor)
+  # Create the session
+  sess = create_session_for_model(m)
+
+  # For each image in the batch
   for img in batch_list:
-    results_proposals_dict[img] = {}
-    results_detections_dict[img] = {}
-
-
-  # First stage, for each model, one by one
-  for m in ensemble:
-
-    # Create the session
-    sess = create_session_for_model(m)
-
-    # For each image in the batch
-    for img in batch_list:
-
-      # The input image is the same for all the models in the ensemble
-      readable_image = get_image_for_odapi(images_dir, img)
-
-      # Run the first stage
-      if DEBUG_MODE: image_to_feed = 3
-      else:          image_to_feed = readable_image
-      results_proposals_dict[img][m] = sess.run(
-        [first_stage(m, image_tensor)], 
-        feed_dict={image_tensor: image_to_feed}
-      )[0]
-
-
-  # For each image, merge the results of all the models
-  ensembled_proposals = {}
-  for img in batch_list:
-    ensembled_proposals[img] = postprocess_first_stage(ensemble, results_proposals_dict[img])
-  results_proposals_dict.clear()
-
-
-  # Second stage, for each model, one by one
-  for m in ensemble:
-
-    # Create the session
-    sess = create_session_for_model(m)
-
-    # For each image in the batch
-    for img in batch_list:
-
-      # Run the second stage
-      results_detections_dict[img][m] = sess.run(
-        [second_stage(m, proposals_tensor)], 
-        feed_dict={proposals_tensor: ensembled_proposals[img]}
-      )[0]
-
-
-  # For each image, merge the results of all the models
-  ensembled_detections = {}
-  for img in batch_list:
-    ensembled_detections[img] = postprocess_second_stage(ensemble, results_detections_dict[img])
-  results_detections_dict.clear()
-  
-
-  # Get the format of first stage's dict for lost parameters
-  if not DEBUG_MODE:
-    for img in batch_list:
-      tmp_predictions_dict = ensembled_proposals[img]['prediction_dict']
-      tmp_predictions_dict.update(ensembled_detections[img])
-      ensembled_detections[img] = tmp_predictions_dict
-
-  # Postprocessing
-  if not DEBUG_MODE:
-    for img in batch_list:
-      ensembled_detections[img] = postProcess(ensembled_detections[img])
-
-  for img in batch_list:
-    print ensembled_detections[img]
-
-  # Save results
-  # TODO
-  
-  filtered_list = filtered_list[batch:]
-
-
-
-
-
-raise SystemExit
-
-
-# For every image
-for image_name in filtered_list:
-    print '>> Image', image_name
 
     # The input image is the same for all the models in the ensemble
-    image_path = osp.join(images_dir, '{}.{}'.format(image_name, dataset['image_extension']))
-    image = Image.open(image_path)
-    image_np = load_image_into_numpy_array(image)
-    original_image = np.expand_dims(image_np, axis=0)
-
-
-    # First stage
-    proposals_dict = {}
-    for m in ensemble:
-        proposals_dict[m] = first_stage(m, image_tensor)
+    readable_image = get_image_for_odapi(images_dir, img)
 
     # Run the first stage
-    results_proposals_dict = {}
-    for m in ensemble:
-        results_proposals_dict[m] = sessions[m].run([proposals_dict[m]], feed_dict={image_tensor: 3})[0]
+    image_to_feed = readable_image
+    if DEBUG_MODE: image_to_feed = 3
+    results_proposals_dict[img][m] = sess.run(
+      tmp_proposals, 
+      feed_dict={image_tensor: image_to_feed}
+    )
 
-    # Merge the proposals
-    proposals_dict['ensemble'] = postprocess_first_stage(ensemble, results_proposals_dict)
+  sess.close()
 
 
-    # Second stage
-    detections_dict = {}
-    for m in ensemble:
-      detections_dict[m] = second_stage(m, proposals_tensor)
+# For each image, merge the results of all the models
+ensembled_proposals = {}
+for img in batch_list:
+  ensembled_proposals[img] = postprocess_first_stage(ensemble, results_proposals_dict[img])
+results_proposals_dict.clear()
+
+
+# Second stage, for each model, one by one
+for m in ensemble:
+
+  # Second stage
+  tmp_detections = second_stage(m, ensembled_proposals[img]['prediction_dict'],
+                                   rpn_feat_tensor, image_shape_tensor, 
+                                   prop_boxes_tensor, num_prop_tensor)
+  # Create the session
+  sess = create_session_for_model(m)
+
+  # For each image in the batch
+  for img in batch_list:
 
     # Run the second stage
-    results_detections_dict = {}
-    for m in ensemble:
-        results_detections_dict[m] = sessions[m].run([detections_dict[m]], feed_dict={proposals_tensor: proposals_dict['ensemble']})[0]
+    tmp_proposal = ensembled_proposals[img]
+    tmp_prediction = tmp_proposal['prediction_dict']
+    results_detections_dict[img][m] = sess.run(
+      tmp_detections, 
+      feed_dict={rpn_feat_tensor:    tmp_prediction['rpn_features_to_crop'],
+                 image_shape_tensor: tmp_prediction['image_shape'],
+                 prop_boxes_tensor:  tmp_proposal['proposal_boxes_normalized'],
+                 num_prop_tensor:    tmp_proposal['num_proposals']}
+    )
+  
+  sess.close()
 
-    # Merge the detections
-    detections_dict['ensemble'] = postprocess_second_stage(ensemble, results_detections_dict)
-
-
-    # Get the format of first stage's dict for lost parameters
-    if not DEBUG_MODE:
-        tmp_predictions_dict = proposals_dict['ensemble']['prediction_dict']
-        tmp_predictions_dict.update(detections_dict['ensemble'])
-        detections_dict['ensemble'] = tmp_predictions_dict
-
-    # Postprocessing
-    if not DEBUG_MODE:
-        detections_dict['ensemble'] = postProcess(detections_dict['ensemble'])
-
-
-    print(detections_dict['ensemble'])
+# For each image, merge the results of all the models
+ensembled_detections = {}
+for img in batch_list:
+  ensembled_detections[img] = postprocess_second_stage(ensemble, results_detections_dict[img])
+results_detections_dict.clear()
 
 
+# Save results
+for img in batch_list:
+  # The image, for global characteristics
+  image = get_image(images_dir, img)
+  (im_width, im_height) = image.size
+  
+  # General post processing
+  label_id_offset = 1
+  scores = np.squeeze(ensembled_detections[img]['detection_scores'], axis=0)
+  boxes = np.squeeze(ensembled_detections[img]['detection_boxes'], axis=0)
+  classes = np.squeeze(ensembled_detections[img]['detection_classes'], axis=0) + label_id_offset
+  
+  confident_indices = scores > CONFIDENCE_THRESH
+  scores = scores[confident_indices]
+  boxes = boxes[confident_indices]
+  classes = classes[confident_indices]
 
+  absolute_boxes = []
+  for box in boxes:
+    y_min, x_min, y_max, x_max = box
+    y_min = im_height * y_min
+    y_max = im_height * y_max
+    x_min = im_width * x_min
+    x_max = im_width * x_max
+    absolute_boxes.append([x_min, y_min, x_max, y_max])
+  
+  with open(osp.join(annotations_dir, img + '.txt'), 'a') as f:
+    for i in range(len(absolute_boxes)):
+      f.write(' '.join([str(int(classes[i])), 
+                        ' '.join([str(absolute_boxes[i][0]), str(absolute_boxes[i][1]), 
+                                  str(absolute_boxes[i][2]), str(absolute_boxes[i][3])]), 
+                        str(scores[i])]) + '\n')
 
+# Go to next batch  
+filtered_list = filtered_list[batch:]
 
 
 
