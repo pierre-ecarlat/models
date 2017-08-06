@@ -214,6 +214,7 @@ with detection_graph.as_default():
       for box in boxes:
         y1, x1, y2, x2 = box
         boxes_normalized.append([x1*width, y1*height, x2*width, y2*height])
+        #boxes_normalized.append([y1*height, x1*width, y2*height, x2*width])
       boxes = np.asarray(boxes_normalized)
 
       # For each category (except 0: background)
