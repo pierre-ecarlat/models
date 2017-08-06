@@ -1,10 +1,10 @@
-import numpy as np
 import os
 import six.moves.urllib as urllib
 import sys
 import tarfile
 import tensorflow as tf
 import zipfile
+import numpy as np
 
 from collections import defaultdict
 from io import StringIO
@@ -23,6 +23,25 @@ from utils import label_map_util
 from utils import visualization_utils as vis_util
 
 
+PATH_TO_FRCNN_CKPT = '/home/pierre/projects/deep_learning/foodDetectionAPI/models/Faster_RCNN_ResNet101_Foodinc_950k.pb'
+PATH_TO_FRCNN_INCEPTION_CKPT = '/home/pierre/projects/deep_learning/foodDetectionAPI/models/Faster_RCNN_ResNet101_Inception_Foodinc_340k.pb'
+PATH_TO_SSD_CKPT = '/home/pierre/projects/deep_learning/foodDetectionAPI/models/SSD_MobileNet_Foodinc_550k.pb'
+
+# Arguments
+flags = tf.app.flags
+flags.DEFINE_string('graph', 'frcnn',
+                    'Graph [frcnn, inception, ssd].')
+FLAGS = flags.FLAGS
+assert FLAGS.graph in ['frcnn', 'inception', 'ssd'], ''
+
+if FLAGS.graph == 'frcnn':
+  PATH_TO_CKPT = PATH_TO_FRCNN_CKPT
+elif FLAGS.graph == 'inception':
+  PATH_TO_CKPT = PATH_TO_FRCNN_INCEPTION_CKPT
+elif FLAGS.graph == 'ssd':
+  PATH_TO_CKPT = PATH_TO_SSD_CKPT
+
+
 
 # What model to download.
 MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
@@ -30,21 +49,22 @@ MODEL_FILE = MODEL_NAME + '.tar.gz'
 DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
-#PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_CKPT = '/home/pierre/weights/graphcoucou.pb'
+#PATH_TO_CKPT = '/home/pierre/projects/deep_learning/setup_tf/results/frcnnR101_coco/my_frozenInferenceGraph_optimized.pb'
 
 # List of the strings that is used to add correct label for each box.
-#PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
 PATH_TO_LABELS = os.path.join('data', 'foodinc_label_map.pbtxt')
+#PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
 
-#NUM_CLASSES = 90
 NUM_CLASSES = 67
+#NUM_CLASSES = 90
 
 #PATH_TO_TEST_IMAGES_DIR = '/home/pierre/projects/datasets/VOC2007/Images'
 #LIST_TEST_IMAGES = '/home/pierre/projects/datasets/VOC2007/ImageSets/Main/test.txt'
 PATH_TO_TEST_IMAGES_DIR = '/home/pierre/projects/datasets/Foodinc/Images'
-LIST_TEST_IMAGES = '/home/pierre/projects/datasets/Foodinc/ImageSets/test.txt'
-NB_IMAGES = 50
+LIST_TEST_IMAGES = '/home/pierre/projects/datasets/Foodinc/ImageSets/test_bckp.txt'
+#PATH_TO_TEST_IMAGES_DIR = '/home/pierre/Desktop/dumpImages'
+#LIST_TEST_IMAGES = '/home/pierre/Desktop/dumpImages/list.txt'
+NB_IMAGES = -1
 #IMG_EXT = 'jpg'
 IMG_EXT = 'png'
 
@@ -83,7 +103,7 @@ def load_image_into_numpy_array(image):
 # image1.jpg
 # image2.jpg
 # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)][:NB_IMAGES]
+list_images_names = [line.rstrip('\n') for line in open(LIST_TEST_IMAGES)]#[:NB_IMAGES]
 TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{}.{}'.format(i, IMG_EXT)) for i in list_images_names ]
 
 # Size, in inches, of the output images.
@@ -126,6 +146,6 @@ with detection_graph.as_default():
       #plt.imshow(image_np)
       cv2_image = np.array(image_np)
       cv2_image = cv2_image[:, :, ::-1].copy()
-      cv2.imshow('image', cv2_image)
+      cv2.imshow(FLAGS.graph, cv2_image)
       cv2.waitKey(0)
 

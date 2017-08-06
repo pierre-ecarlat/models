@@ -96,6 +96,7 @@ if user == "pierre":
   PATH_TO_DATASET = '/home/pierre/projects/datasets/Foodinc/'
 elif user == "finc":
   PATH_TO_CKPT = '/mnt2/results/Foodinc/frcnn_res101_e2e_tf_ODAPI/graph.pb'
+  #PATH_TO_CKPT = '/mnt2/results/Foodinc/frcnn_inception_tf_ODAPI/graph.pb'
   PATH_TO_MODEL = '/mnt2/results/Foodinc/frcnn_res101_e2e_tf_ODAPI/model.ckpt-948216'
   PATH_TO_DATASET = '/mnt2/datasets/Foodinc/'
 else:
@@ -212,7 +213,7 @@ with detection_graph.as_default():
       boxes_normalized = []
       for box in boxes:
         y1, x1, y2, x2 = box
-        boxes_normalized.append([y1*height, x1*width, y2*height, x2*width])
+        boxes_normalized.append([x1*width, y1*height, x2*width, y2*height])
       boxes = np.asarray(boxes_normalized)
 
       # For each category (except 0: background)
