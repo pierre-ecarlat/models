@@ -43,7 +43,8 @@ FLAGS = flags.FLAGS
 # MAIN PARAMETERS
 ####################################################################
 MODELS = {
-  'base_models_dir':  '/home/pierre/projects/deep_learning/foodDetectionAPI/models', 
+  #'base_models_dir':  '/home/pierre/projects/deep_learning/foodDetectionAPI/models', 
+  'base_models_dir':  '/home/finc/tf_playground/results_models',  
   'base_configs_dir': 'samples/configs', 
   'frcnn': {
       'config':  'faster_rcnn_resnet101_foodinc.config', 
@@ -70,7 +71,8 @@ MODELS = {
 DATASET = {
   'foodinc': {
       'nb_classes': 67, 
-      'base_dir': '/home/pierre/projects/datasets/MacFoodinc', 
+      #'base_dir': '/home/pierre/projects/datasets/MacFoodinc', 
+      'base_dir': '/home/finc/final_macFoodinc/0_25000', 
       'images_dir': 'Images', 
       'annotations_dir': 'Annotations', 
       'labels_path': 'infos/foodinc_label_map.pbtxt',
