@@ -11,6 +11,7 @@ import bisect
 import json
 import gzip
 import time
+import cPickle as pickle
 
 from collections import defaultdict
 from io import StringIO
@@ -231,14 +232,12 @@ for img in batch_list:
 
   # Restore the ensemble
   proposals_path = osp.join(annotations_dir, img + '.1')
-  loaded_results = json.load(open(proposals_path))
+  with open(proposals_path, 'rb') as f:
+    loaded_results = pickle.load(f)
 
   model_characts_path = osp.join(annotations_dir, img + '.' + model + '.1.prop')
-  loaded_characts = None
-  with gzip.GzipFile(model_characts_path, 'r') as f:
-    json_bytes = f.read()
-    json_str = json_bytes.decode('utf-8')
-    loaded_characts = json.loads(json_str)
+  with open(model_characts_path, 'rb') as f:
+    loaded_characts = pickle.load(f)
 
   results_proposals_dict = {
     'proposal_boxes_normalized': np.array(loaded_results['proposal_boxes_normalized']), 
@@ -278,7 +277,8 @@ for img in batch_list:
   }
   """
   tmp_annotation_file = osp.join(annotations_dir, img + '.' + model + '.2')
-  json.dump(result_to_save, open(tmp_annotation_file, 'w'))
+  with open(tmp_annotation_file, 'wb') as f:
+    pickle.dump(result_to_save, f, pickle.HIGHEST_PROTOCOL)
   os.system("rm " + model_characts_path)
 
 sess.close()

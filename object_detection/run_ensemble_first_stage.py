@@ -10,6 +10,7 @@ import functools
 import bisect
 import json
 import time
+import cPickle as pickle
 
 from collections import defaultdict
 from io import StringIO
@@ -189,7 +190,8 @@ for img in batch_list:
   results_proposals_dict = {}
   for model in ensemble:
     annotation_path = osp.join(annotations_dir, img + '.' + model + '.1')
-    loaded_results = json.load(open(annotation_path))
+    with open(annotation_path, 'rb') as f:
+      loaded_results = pickle.load(f)
 
     results_proposals_dict[model] = {
       'proposal_boxes_normalized': np.array(loaded_results['proposal_boxes_normalized']), 
@@ -208,7 +210,8 @@ for img in batch_list:
   }
 
   tmp_annotation_file = osp.join(annotations_dir, img + '.1')
-  json.dump(result_to_save, open(tmp_annotation_file, 'w'))
+  with open(tmp_annotation_file, 'wb') as f:
+    pickle.dump(result_to_save, f, pickle.HIGHEST_PROTOCOL)
 
   for model in ensemble:
     annotation_path = osp.join(annotations_dir, img + '.' + model + '.1')

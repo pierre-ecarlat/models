@@ -9,8 +9,10 @@ import numpy as np
 import functools
 import bisect
 import json
+import base64
 import time
 import gzip
+import cPickle as pickle
 
 from collections import defaultdict
 from io import StringIO
@@ -39,7 +41,6 @@ flags.DEFINE_string('model', '',
 flags.DEFINE_integer('batch', 1,
                      'The model on which to run the first stage.')
 FLAGS = flags.FLAGS
-
 
 
 ####################################################################
@@ -241,6 +242,13 @@ for img in batch_list:
     feed_dict={image_tensor: readable_image}
   )
 
+  # To ensemble
+  predictions_to_save = {
+    'proposal_boxes_normalized': proposals['proposal_boxes_normalized'].tolist(), 
+    'proposal_scores': proposals['proposal_scores'].tolist(), 
+    'num_proposals': proposals['num_proposals'].tolist(), 
+  }
+
   # To keep for the second stage
   model_charact_to_save = {
     'prediction_dict': {
@@ -249,21 +257,13 @@ for img in batch_list:
     }, 
   }
 
-  # To ensemble
-  predictions_to_save = {
-    'proposal_boxes_normalized': proposals['proposal_boxes_normalized'].tolist(), 
-    'proposal_scores': proposals['proposal_scores'].tolist(), 
-    'num_proposals': proposals['num_proposals'].tolist(), 
-  }
-
+  # Write them
   tmp_annotation_file = osp.join(annotations_dir, img + '.' + model + '.1')
-  json.dump(predictions_to_save, open(tmp_annotation_file, 'w'))
-
+  with open(tmp_annotation_file, 'wb') as f:
+    pickle.dump(predictions_to_save, f, pickle.HIGHEST_PROTOCOL)
   tmp_model_annotation_file = osp.join(annotations_dir, img + '.' + model + '.1.prop')
-  json_str = json.dumps(model_charact_to_save)
-  json_bytes = json_str.encode('utf-8')
-  with gzip.GzipFile(tmp_model_annotation_file, 'w') as f:
-    f.write(json_bytes)
+  with open(tmp_model_annotation_file, 'wb') as f:
+    pickle.dump(model_charact_to_save, f, pickle.HIGHEST_PROTOCOL)
 
 sess.close()
 

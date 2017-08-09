@@ -10,6 +10,7 @@ import functools
 import bisect
 import json
 import time
+import cPickle as pickle
 
 from collections import defaultdict
 from io import StringIO
@@ -257,7 +258,8 @@ for img in batch_list:
   results_detections_dict = {}
   for model in ensemble:
     annotation_path = osp.join(annotations_dir, img + '.' + model + '.2')
-    loaded_results = json.load(open(annotation_path))
+    with open(annotation_path, 'rb') as f:
+      loaded_results = pickle.load(f)
     """
     results_detections_dict[model] = {
       'detection_classes': np.array(loaded_results['detection_classes']), 
