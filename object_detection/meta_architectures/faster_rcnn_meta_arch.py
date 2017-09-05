@@ -646,7 +646,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
     }
     return prediction_dict
   
-  def propose_boxes_only(self, preprocessed_inputs):
+  def propose_boxes_only(self, preprocessed_inputs, scope=''):
     """Personnal code that runs only the first stage in a way it can be 
     understood from the input tensor (preprocessed image).
     It does basically the same thing as the predict method above, excepting
@@ -672,9 +672,9 @@ class FasterRCNNMetaArch(model.DetectionModel):
         `self.max_num_proposals` for each image.
     """
     (rpn_box_predictor_features, rpn_features_to_crop, anchors_boxlist,
-     image_shape) = self._extract_rpn_feature_maps(preprocessed_inputs)
+     image_shape) = self._extract_rpn_feature_maps(preprocessed_inputs, scope)
     (rpn_box_encodings, rpn_objectness_predictions_with_background
-    ) = self._predict_rpn_proposals(rpn_box_predictor_features)
+    ) = self._predict_rpn_proposals(rpn_box_predictor_features, scope)
 
     # The Faster R-CNN paper recommends clipping anchors at inference time.
     clip_window = tf.to_float(tf.stack([0, 0, image_shape[1], image_shape[2]]))
@@ -702,7 +702,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
 
   def classify_proposals_only(self, rpn_features_to_crop, image_shape, 
                                     proposal_boxes_normalized, num_proposals, 
-                                    isRFCN):
+                                    isRFCN, scope=''):
     """Personnal code that runs only the second stage in a way it can 
     understand modified proposals.
     It does basically the same thing as the _predict_second_stage method above, 
@@ -737,19 +737,19 @@ class FasterRCNNMetaArch(model.DetectionModel):
     box_classifier_features = (
         self._feature_extractor.extract_box_classifier_features(
             rpn_features_to_crop,
-            scope=self.second_stage_feature_extractor_scope))
+            scope='/'.join([scope, self.second_stage_feature_extractor_scope])))
 
     if isRFCN:
       box_predictions = self._rfcn_box_predictor.predict(
           box_classifier_features,
           num_predictions_per_location=1,
-          scope=self.second_stage_box_predictor_scope,
+          scope='/'.join([scope, self.second_stage_box_predictor_scope]),
           proposal_boxes=proposal_boxes_normalized)
     else:
       box_predictions = self._mask_rcnn_box_predictor.predict(
           box_classifier_features,
           num_predictions_per_location=1,
-          scope=self.second_stage_box_predictor_scope)
+          scope='/'.join([scope, self.second_stage_box_predictor_scope]))
     refined_box_encodings = tf.squeeze(
         box_predictions[box_predictor.BOX_ENCODINGS], axis=1)
     class_predictions_with_background = tf.squeeze(box_predictions[
@@ -767,7 +767,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
     }
     return prediction_dict
 
-  def _extract_rpn_feature_maps(self, preprocessed_inputs):
+  def _extract_rpn_feature_maps(self, preprocessed_inputs, scope_prefix=''):
     """Extracts RPN features.
 
     This function extracts two feature maps: a feature map to be directly
@@ -791,7 +791,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
     """
     image_shape = tf.shape(preprocessed_inputs)
     rpn_features_to_crop = self._feature_extractor.extract_proposal_features(
-        preprocessed_inputs, scope=self.first_stage_feature_extractor_scope)
+        preprocessed_inputs, scope='/'.join([scope_prefix, self.first_stage_feature_extractor_scope]))
 
     feature_map_shape = tf.shape(rpn_features_to_crop)
     anchors = self._first_stage_anchor_generator.generate(
@@ -807,7 +807,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
     return (rpn_box_predictor_features, rpn_features_to_crop,
             anchors, image_shape)
 
-  def _predict_rpn_proposals(self, rpn_box_predictor_features):
+  def _predict_rpn_proposals(self, rpn_box_predictor_features, scope_prefix=''):
     """Adds box predictors to RPN feature map to predict proposals.
 
     Note resulting tensors will not have been postprocessed.
@@ -839,7 +839,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
     box_predictions = self._first_stage_box_predictor.predict(
         rpn_box_predictor_features,
         num_anchors_per_location[0],
-        scope=self.first_stage_box_predictor_scope)
+        scope='/'.join([scope_prefix, self.first_stage_box_predictor_scope]))
 
     box_encodings = box_predictions[box_predictor.BOX_ENCODINGS]
     objectness_predictions_with_background = box_predictions[
