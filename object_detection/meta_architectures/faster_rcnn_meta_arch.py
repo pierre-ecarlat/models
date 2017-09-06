@@ -702,7 +702,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
 
   def classify_proposals_only(self, rpn_features_to_crop, image_shape, 
                                     proposal_boxes_normalized, num_proposals, 
-                                    isRFCN, scope=''):
+                                    isRFCN, scope_prefix=''):
     """Personnal code that runs only the second stage in a way it can 
     understand modified proposals.
     It does basically the same thing as the _predict_second_stage method above, 
@@ -734,22 +734,23 @@ class FasterRCNNMetaArch(model.DetectionModel):
           self._compute_second_stage_input_feature_maps(
               rpn_features_to_crop, proposal_boxes_normalized))
 
+    scope_prefix = (scope_prefix + '/' if scope_prefix else '')
     box_classifier_features = (
         self._feature_extractor.extract_box_classifier_features(
             rpn_features_to_crop,
-            scope='/'.join([scope, self.second_stage_feature_extractor_scope])))
+            scope=scope_prefix + self.second_stage_feature_extractor_scope))
 
     if isRFCN:
       box_predictions = self._rfcn_box_predictor.predict(
           box_classifier_features,
           num_predictions_per_location=1,
-          scope='/'.join([scope, self.second_stage_box_predictor_scope]),
+          scope=scope_prefix + self.second_stage_box_predictor_scope,
           proposal_boxes=proposal_boxes_normalized)
     else:
       box_predictions = self._mask_rcnn_box_predictor.predict(
           box_classifier_features,
           num_predictions_per_location=1,
-          scope='/'.join([scope, self.second_stage_box_predictor_scope]))
+          scope=scope_prefix + self.second_stage_box_predictor_scope)
     refined_box_encodings = tf.squeeze(
         box_predictions[box_predictor.BOX_ENCODINGS], axis=1)
     class_predictions_with_background = tf.squeeze(box_predictions[
@@ -790,8 +791,9 @@ class FasterRCNNMetaArch(model.DetectionModel):
       image_shape: A 1-D tensor representing the input image shape.
     """
     image_shape = tf.shape(preprocessed_inputs)
+    scope_prefix = (scope_prefix + '/' if scope_prefix else '')
     rpn_features_to_crop = self._feature_extractor.extract_proposal_features(
-        preprocessed_inputs, scope='/'.join([scope_prefix, self.first_stage_feature_extractor_scope]))
+        preprocessed_inputs, scope=scope_prefix + self.first_stage_feature_extractor_scope)
 
     feature_map_shape = tf.shape(rpn_features_to_crop)
     anchors = self._first_stage_anchor_generator.generate(
@@ -836,10 +838,11 @@ class FasterRCNNMetaArch(model.DetectionModel):
     if len(num_anchors_per_location) != 1:
       raise RuntimeError('anchor_generator is expected to generate anchors '
                          'corresponding to a single feature map.')
+    scope_prefix = (scope_prefix + '/' if scope_prefix else '')
     box_predictions = self._first_stage_box_predictor.predict(
         rpn_box_predictor_features,
         num_anchors_per_location[0],
-        scope='/'.join([scope_prefix, self.first_stage_box_predictor_scope]))
+        scope=scope_prefix + self.first_stage_box_predictor_scope)
 
     box_encodings = box_predictions[box_predictor.BOX_ENCODINGS]
     objectness_predictions_with_background = box_predictions[

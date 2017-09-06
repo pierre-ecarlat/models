@@ -4,6 +4,10 @@ import numpy as np
 from PIL import Image
 import bisect
 import time
+import base64
+import cStringIO
+from io import BytesIO
+import json
 
 import tensorflow as tf
 
@@ -13,10 +17,7 @@ from object_detection.protos import pipeline_pb2
 
 dataset_name = 'foodinc'
 ensemble = ['frcnn', 'inception', 'rfcn']
-batch = 1
-nb_iter = 1
 CONFIDENCE_THRESH = 0.5
-TEST = True
 
 
 ####################################################################
@@ -48,73 +49,10 @@ MODELS = {
 DATASET = {
   'foodinc': {
       'nb_classes': 67, 
-      'base_dir': '/home/pierre/projects/datasets/test', 
-      'images_dir': 'Images', 
-      'annotations_dir': 'Annotations', 
-      'list_path': 'ImageSets/all.txt', 
-      'max_images': -1, 
-      'image_extension': 'jpg', 
   }
 }
 
 dataset = DATASET[dataset_name]
-images_dir = osp.join(dataset['base_dir'], dataset['images_dir'])
-annotations_dir = osp.join(dataset['base_dir'], dataset['annotations_dir'])
-
-
-####################################################################
-# REQUIREMENTS
-####################################################################
-if TEST:
-  paths_check = {
-    dataset['base_dir']: [ { 'name': '',                     'type': 'dir', }, 
-                           { 'name': dataset['images_dir'],  'type': 'dir', }, ], 
-    MODELS['base_models_dir']: [], 
-    MODELS['base_configs_dir']: [], 
-  }
-  for model in ensemble:
-    paths_check[MODELS['base_configs_dir']].append({ 'name': MODELS[model]['config'],  'type': 'file' } )
-    paths_check[MODELS['base_models_dir']].append( { 'name': MODELS[model]['ckp_dir'], 'type': 'dir' } )
-    paths_check[MODELS['base_models_dir']].append( { 'name': MODELS[model]['model'],   'type': 'file' } )
-  for k, v in paths_check.iteritems():
-    for p in v:
-      if (p['type'] == 'dir'  and not osp.exists(osp.join(k, p['name']))) or \
-         (p['type'] == 'file' and not osp.isfile(osp.join(k, p['name']))):
-        print ' '.join(['No', p['name'], 'given, please add / create it.'])
-        raise SystemExit
-
-  if not osp.exists(annotations_dir):
-    print 'Create the Annotations directory where to save the annotations.'
-    os.makedirs(annotations_dir)
-
-
-####################################################################
-# Get the list of images to annotate
-####################################################################
-# List of images to annotate
-list_path = osp.join(dataset['base_dir'], dataset['list_path'])
-list_images_names = [line.rstrip('\n') for line in open(list_path)]
-if dataset['max_images'] != -1 and dataset['max_images'] < len(list_images_names):
-    list_images_names = list_images_names[:dataset['max_images']]
-
-# Filtered images that should not be annotated
-filtered_list = []
-errors = { 'annotated': [], 'notafile': [] }
-for img_name in list_images_names:
-  if osp.isfile(osp.join(annotations_dir, img_name + '.txt')):
-    errors['annotated'].append(img_name)
-  elif not osp.isfile(osp.join(images_dir, '{}.{}'.format(img_name, dataset['image_extension']))):
-    errors['notafile'].append(img_name)
-  else:
-    filtered_list.append(img_name)
-
-if len(errors['annotated']) > 0:
-  print len(errors['annotated']), "images are already annotated, will be skipped"
-if len(errors['notafile']) > 0:
-  print len(errors['notafile']), "images are in the list, but doesn't exist....."
-if len(filtered_list) == 0:
-  print "No images to annotate."
-  raise SystemExit
 
 
 ####################################################################
@@ -134,22 +72,13 @@ for model in ensemble:
 ####################################################################
 # Preparation
 ####################################################################
-# Getting an image
-def get_image(images_dir, image_name):
-  path = osp.join(images_dir, '{}.{}'.format(image_name, dataset['image_extension']))
-  return Image.open(path)
-
 # Helper for the image
-def get_image_for_odapi(images_dir, image_name):
-  image = get_image(images_dir, image_name)
+def get_image_for_odapi(raw_image):
+  image = Image.open(BytesIO(base64.b64decode(raw_image)))
   (im_width, im_height) = image.size
   image_np = np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
   extended_image = np.expand_dims(image_np, axis=0)
   return extended_image
-
-# Get path to the weights (.pb file)
-def get_model_weights(model):
-  return osp.join(MODELS['base_models_dir'], MODELS[model]['model'])
 
 # Helper for the session
 def create_session_for_model(model):
@@ -297,81 +226,123 @@ ensembled_detections_tensor = postprocess_detections(built_model[model], model, 
     'image_shape': image_shape_tensor, 
   })
 
+# Regular session for post processing
+regular_session = tf.Session('', graph=tf.get_default_graph())
 
-# For each image in the batch
-for img in filtered_list:
 
-  print img
 
-  # The input image is the same for all the models in the ensemble
-  readable_image = get_image_for_odapi(images_dir, img)
 
-  # Run the first stage
-  proposals = {}
-  for model in ensemble:
-    proposals[model] = sessions[model].run(
-      proposals_tensor[model], 
-      feed_dict={image_tensor: readable_image}
-    )
+# Should come from client
+image_path = '/home/pierre/projects/deep_learning/ensembleAPI/res/food1.jpg'
+image = Image.open(image_path)
+buffer = cStringIO.StringIO()
+image.save(buffer, format="JPEG")
+img_str = base64.b64encode(buffer.getvalue())
 
-  # For each image, merge the results of all the models
-  ensembled_proposals = merge_proposals(ensemble, proposals)
 
-  # Run the second stage
-  detections = {}
-  for model in ensemble:
-    detections[model] = sessions[model].run(
-      detections_tensor[model], 
-      feed_dict={rpn_feat_tensor[model]: proposals[model]['prediction_dict']['rpn_features_to_crop'],
-                 image_shape_tensor:     proposals[model]['prediction_dict']['image_shape'],
-                 prop_boxes_tensor:      ensembled_proposals['proposal_boxes_normalized'],
-                 num_prop_tensor:        ensembled_proposals['num_proposals']}
-    )
 
-  # For each image, merge the results of all the models
-  ensembled_detections = merge_detections(ensemble, detections)
-  
-  # Postprocess
-  with tf.Session('', graph=tf.get_default_graph()) as sess:
-    postprocessed_detections = sess.run(
-      ensembled_detections_tensor, 
-      feed_dict={class_predictions_tensor:     ensembled_detections['class_predictions_with_background'],
-                 refined_box_encodings_tensor: ensembled_detections['refined_box_encodings'],
-                 proposal_boxes_tensor:        ensembled_detections['proposal_boxes'],
-                 num_proposals_tensor:         ensembled_detections['num_proposals'], 
-                 image_shape_tensor:           ensembled_detections['image_shape']}
-    )
 
-  # The image, for global characteristics
-  image = get_image(images_dir, img)
-  (im_width, im_height) = image.size
-  
-  # General post processing
-  label_id_offset = 1
-  scores = np.squeeze(postprocessed_detections['detection_scores'], axis=0)
-  boxes = np.squeeze(postprocessed_detections['detection_boxes'], axis=0)
-  classes = np.squeeze(postprocessed_detections['detection_classes'], axis=0) + label_id_offset
-  
-  confident_indices = scores > CONFIDENCE_THRESH
-  scores = scores[confident_indices]
-  boxes = boxes[confident_indices]
-  classes = classes[confident_indices]
 
-  absolute_boxes = []
-  for box in boxes:
-    y_min, x_min, y_max, x_max = box
-    y_min = im_height * y_min
-    y_max = im_height * y_max
-    x_min = im_width * x_min
-    x_max = im_width * x_max
-    absolute_boxes.append([x_min, y_min, x_max, y_max])
-  
-  with open(osp.join(annotations_dir, img + '.txt'), 'a') as f:
-    for i in range(len(absolute_boxes)):
-      f.write(' '.join([str(int(classes[i])), 
-                        ' '.join([str(absolute_boxes[i][0]), str(absolute_boxes[i][1]), 
-                                  str(absolute_boxes[i][2]), str(absolute_boxes[i][3])]), 
-                        str(scores[i])]) + '\n')
+
+# The input image is the same for all the models in the ensemble
+readable_image = get_image_for_odapi(img_str)
+
+# Run the first stage
+proposals = {}
+for model in ensemble:
+  proposals[model] = sessions[model].run(
+    proposals_tensor[model], 
+    feed_dict={image_tensor: readable_image}
+  )
+
+# For each image, merge the results of all the models
+ensembled_proposals = merge_proposals(ensemble, proposals)
+
+# Run the second stage
+detections = {}
+for model in ensemble:
+  detections[model] = sessions[model].run(
+    detections_tensor[model], 
+    feed_dict={rpn_feat_tensor[model]: proposals[model]['prediction_dict']['rpn_features_to_crop'],
+               image_shape_tensor:     proposals[model]['prediction_dict']['image_shape'],
+               prop_boxes_tensor:      ensembled_proposals['proposal_boxes_normalized'],
+               num_prop_tensor:        ensembled_proposals['num_proposals']}
+  )
+
+# For each image, merge the results of all the models
+ensembled_detections = merge_detections(ensemble, detections)
+
+# Postprocess
+postprocessed_detections = regular_session.run(
+    ensembled_detections_tensor, 
+    feed_dict={class_predictions_tensor:     ensembled_detections['class_predictions_with_background'],
+               refined_box_encodings_tensor: ensembled_detections['refined_box_encodings'],
+               proposal_boxes_tensor:        ensembled_detections['proposal_boxes'],
+               num_proposals_tensor:         ensembled_detections['num_proposals'], 
+               image_shape_tensor:           ensembled_detections['image_shape']}
+  )
+
+# General post processing
+label_id_offset = 1
+num_detections = np.squeeze(postprocessed_detections['num_detections'], axis=0)
+scores = np.squeeze(postprocessed_detections['detection_scores'], axis=0)
+boxes = np.squeeze(postprocessed_detections['detection_boxes'], axis=0)
+classes = np.squeeze(postprocessed_detections['detection_classes'], axis=0) + label_id_offset
+
+        
+# Parse the result into a json
+doc = {}
+for i in range(int(num_detections)):
+    # ODAPI returns (ymin, xmin, ymax, xmax) format
+    doc[str(i)] = [ { 'y1':     str(boxes[i][0]) },
+                    { 'x1':     str(boxes[i][1]) },
+                    { 'y2':     str(boxes[i][2]) },
+                    { 'x2':     str(boxes[i][3]) },
+                    { 'score':  str(scores[i])   },
+                    { 'classe': str(classes[i])  }
+        ]
+
+# Create a JSON representation of the resource
+print json.dumps(doc, ensure_ascii=False)
+
+# Send back to client
+raise SystemExit
+
+
+
+
+
+
+# The image, for global characteristics
+image = get_image(images_dir, img)
+(im_width, im_height) = image.size
+
+# General post processing
+label_id_offset = 1
+scores = np.squeeze(postprocessed_detections['detection_scores'], axis=0)
+boxes = np.squeeze(postprocessed_detections['detection_boxes'], axis=0)
+classes = np.squeeze(postprocessed_detections['detection_classes'], axis=0) + label_id_offset
+
+confident_indices = scores > CONFIDENCE_THRESH
+scores = scores[confident_indices]
+boxes = boxes[confident_indices]
+classes = classes[confident_indices]
+
+absolute_boxes = []
+for box in boxes:
+  y_min, x_min, y_max, x_max = box
+  y_min = im_height * y_min
+  y_max = im_height * y_max
+  x_min = im_width * x_min
+  x_max = im_width * x_max
+  absolute_boxes.append([x_min, y_min, x_max, y_max])
+
+with open(osp.join(annotations_dir, img + '.txt'), 'a') as f:
+  for i in range(len(absolute_boxes)):
+    f.write(' '.join([str(int(classes[i])), 
+                      ' '.join([str(absolute_boxes[i][0]), str(absolute_boxes[i][1]), 
+                                str(absolute_boxes[i][2]), str(absolute_boxes[i][3])]), 
+                      str(scores[i])]) + '\n')
 
 
 for model in ensemble:

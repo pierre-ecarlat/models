@@ -145,10 +145,6 @@ def get_image_for_odapi(images_dir, image_name):
   extended_image = np.expand_dims(image_np, axis=0)
   return extended_image
 
-# Get path to the weights (.pb file)
-def get_model_weights(model):
-  return osp.join(MODELS['base_models_dir'], MODELS[model]['model'])
-
 # Helper for the session
 def create_session_for_model(model):
   variables_to_restore = [v for v in tf.global_variables() if v.name.startswith(model + "/")]
@@ -235,7 +231,7 @@ def merge_detections(ensemble, detections):
       'image_shape': detections[ensemble[0]]['image_shape'], 
     }
 
-def postprocess_detections(bm, model, detections):
+def postprocess_detections(bm, detections):
     # Post processing
     postprocessed_detections = bm.postprocess(detections)
 
@@ -247,16 +243,21 @@ def postprocess_detections(bm, model, detections):
 # The inputs
 ####################################################################
 # Input for the first stage: the image
-image_tensor = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='image_tensor')
+image_tensor = {}
 
 # Input for the second stage: the selected proposals
 rpn_feat_tensor = {}
+prop_boxes_tensor = {}
+num_prop_tensor = {}
+img_shape_tensor = {}
+
 for model in ensemble:
+  image_tensor[model] = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='image_tensor')
   rpn_shape = MODELS[model]['features_to_crop_shape']
   rpn_feat_tensor[model] = tf.placeholder(tf.float32, shape=rpn_shape, name='rpn_feat')
-prop_boxes_tensor = tf.placeholder(tf.float32, shape=[1, 300, 4], name='prop_boxes')
-num_prop_tensor = tf.placeholder(tf.int32, shape=[1], name='num_prop')
-image_shape_tensor = tf.placeholder(tf.int32, shape=[4], name='img_shape')
+  prop_boxes_tensor[model] = tf.placeholder(tf.float32, shape=[1, 300, 4], name='prop_boxes')
+  num_prop_tensor[model] = tf.placeholder(tf.int32, shape=[1], name='num_prop')
+  img_shape_tensor[model] = tf.placeholder(tf.int32, shape=[4], name='img_shape')
 
 # Input for the postprocessing
 class_predictions_tensor = tf.placeholder(tf.float32, shape=[300, dataset['nb_classes']+1], name='class_predictions')
@@ -275,25 +276,28 @@ proposals_tensor = {}
 detections_tensor = {}
 for model in ensemble:
   # First stage scenario
-  proposals_tensor[model] = propose_boxes_only(built_model[model], model, image_tensor)
-
+  proposals_tensor[model] = propose_boxes_only(built_model[model], model, image_tensor[model])
+  
   # Second stage scenario
   detections_tensor[model] = classify_proposals_only(built_model[model], model, 
-                                                     rpn_feat_tensor[model], image_shape_tensor, 
-                                                     prop_boxes_tensor, num_prop_tensor,
+                                                     rpn_feat_tensor[model], img_shape_tensor[model], 
+                                                     prop_boxes_tensor[model], num_prop_tensor[model],
                                                      (model == 'rfcn'))
   
   # Create the session
   sessions[model] = create_session_for_model(model)
   
 # Postprocess scenario
-ensembled_detections_tensor = postprocess_detections(built_model[model], model, {
+ensembled_detections_tensor = postprocess_detections(built_model[ensemble[0]], {
     'class_predictions_with_background': class_predictions_tensor, 
     'refined_box_encodings': refined_box_encodings_tensor, 
     'proposal_boxes': proposal_boxes_tensor, 
     'num_proposals': num_proposals_tensor, 
     'image_shape': image_shape_tensor, 
   })
+
+# Regular session for post processing
+regular_session = tf.Session('', graph=tf.get_default_graph())
 
 
 # For each image in the batch
@@ -309,8 +313,11 @@ for img in filtered_list:
   for model in ensemble:
     proposals[model] = sessions[model].run(
       proposals_tensor[model], 
-      feed_dict={image_tensor: readable_image}
+      feed_dict={image_tensor[model]: readable_image}
     )
+
+    print proposals[model]['proposal_boxes_normalized'][0][:5]
+    raise SystemExit
 
   # For each image, merge the results of all the models
   ensembled_proposals = merge_proposals(ensemble, proposals)
@@ -320,18 +327,17 @@ for img in filtered_list:
   for model in ensemble:
     detections[model] = sessions[model].run(
       detections_tensor[model], 
-      feed_dict={rpn_feat_tensor[model]: proposals[model]['prediction_dict']['rpn_features_to_crop'],
-                 image_shape_tensor:     proposals[model]['prediction_dict']['image_shape'],
-                 prop_boxes_tensor:      ensembled_proposals['proposal_boxes_normalized'],
-                 num_prop_tensor:        ensembled_proposals['num_proposals']}
+      feed_dict={rpn_feat_tensor[model]:   proposals[model]['prediction_dict']['rpn_features_to_crop'],
+                 img_shape_tensor[model]:  proposals[model]['prediction_dict']['image_shape'],
+                 prop_boxes_tensor[model]: ensembled_proposals['proposal_boxes_normalized'],
+                 num_prop_tensor[model]:   ensembled_proposals['num_proposals']}
     )
 
   # For each image, merge the results of all the models
   ensembled_detections = merge_detections(ensemble, detections)
   
   # Postprocess
-  with tf.Session('', graph=tf.get_default_graph()) as sess:
-    postprocessed_detections = sess.run(
+  postprocessed_detections = regular_session.run(
       ensembled_detections_tensor, 
       feed_dict={class_predictions_tensor:     ensembled_detections['class_predictions_with_background'],
                  refined_box_encodings_tensor: ensembled_detections['refined_box_encodings'],
